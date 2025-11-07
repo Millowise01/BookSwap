@@ -120,29 +120,17 @@ class TestModeScreen extends StatelessWidget {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Set to false to use real Firebase (after enabling Auth in Firebase Console)
   bool useTestMode = false;
-  
-  // Set auth repository test mode
   AuthRepository.useTestMode = useTestMode;
   
   if (!useTestMode) {
     try {
       await Firebase.initializeApp(
-        options: const FirebaseOptions(
-          apiKey: "AIzaSyBdoWw3C5alXg7dqBPZAUwbO5X6iPsQNVw",
-          authDomain: "bookswap-4b750.firebaseapp.com",
-          projectId: "bookswap-4b750",
-          storageBucket: "bookswap-4b750.firebasestorage.app",
-          messagingSenderId: "786574117177",
-          appId: "1:786574117177:web:e2c6a730f6c648255a00e8",
-          measurementId: "G-6G1MQEVSCM",
-        ),
+        options: DefaultFirebaseOptions.currentPlatform,
       );
       debugPrint('Firebase initialized successfully');
     } catch (e) {
       debugPrint('Firebase initialization failed: $e');
-      // Fallback to test mode if Firebase fails
       useTestMode = true;
       AuthRepository.useTestMode = true;
     }
