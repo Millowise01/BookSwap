@@ -6,9 +6,28 @@ import '../../providers/swap_provider.dart';
 import '../../providers/chat_provider.dart';
 import '../../../domain/models/book_model.dart';
 import 'post_book_screen.dart';
+import '../../../services/populate_books.dart';
 
-class BrowseListingsScreen extends StatelessWidget {
+class BrowseListingsScreen extends StatefulWidget {
   const BrowseListingsScreen({super.key});
+
+  @override
+  State<BrowseListingsScreen> createState() => _BrowseListingsScreenState();
+}
+
+class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
+  @override
+  void initState() {
+    super.initState();
+  }
+
+  Future<void> _checkAndPopulateBooks() async {
+    try {
+      await PopulateBooksService.addSampleBooks();
+    } catch (e) {
+      print('Books may already exist: $e');
+    }
+  }
 
   void _showSwapDialog(BuildContext context, BookListing listing, String currentUserId) async {
     final swapProvider = Provider.of<SwapProvider>(context, listen: false);
@@ -116,6 +135,8 @@ class BrowseListingsScreen extends StatelessWidget {
     }
   }
 
+
+
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
@@ -125,23 +146,23 @@ class BrowseListingsScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Browse Listings'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const PostBookScreen()),
-              );
-            },
-          ),
-        ],
+        backgroundColor: const Color(0xFF2C3E50),
+        foregroundColor: Colors.white,
       ),
       body: StreamBuilder<List<BookListing>>(
         stream: bookProvider.getAllListings(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text('Loading books...'),
+                ],
+              ),
+            );
           }
 
           if (snapshot.hasError) {
@@ -170,13 +191,34 @@ class BrowseListingsScreen extends StatelessWidget {
                     'Be the first to post a book!',
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
+                  const SizedBox(height: 24),
+                  ElevatedButton(
+                    onPressed: () async {
+                      await PopulateBooksService.addSampleBooks();
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Sample books added!'),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+                      }
+                    },
+                    child: const Text('Add Sample Books'),
+                  ),
                 ],
               ),
             );
           }
 
-          return ListView.builder(
-            padding: const EdgeInsets.all(8),
+          return GridView.builder(
+            padding: const EdgeInsets.all(16),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              childAspectRatio: 0.65,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+            ),
             itemCount: listings.length,
             itemBuilder: (context, index) {
               final listing = listings[index];
@@ -184,112 +226,124 @@ class BrowseListingsScreen extends StatelessWidget {
               final canSwap = !isOwner && listing.status == 'Active';
 
               return Card(
-                margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                elevation: 4,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 child: InkWell(
+                  borderRadius: BorderRadius.circular(12),
                   onTap: () {
-                    // Could navigate to detail screen
+                    if (canSwap) {
+                      _showSwapDialog(context, listing, userId);
+                    } else {
+                      _showBookDetails(context, listing);
+                    }
                   },
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Cover Image
-                      if (listing.coverImageUrl != null)
-                        Container(
+                      Expanded(
+                        flex: 3,
+                        child: Container(
                           width: double.infinity,
-                          height: 200,
                           decoration: BoxDecoration(
-                            image: DecorationImage(
-                              image: NetworkImage(listing.coverImageUrl!),
-                              fit: BoxFit.cover,
+                            borderRadius: const BorderRadius.vertical(
+                              top: Radius.circular(12),
                             ),
+                            image: listing.coverImageUrl != null
+                                ? DecorationImage(
+                                    image: NetworkImage(listing.coverImageUrl!),
+                                    fit: BoxFit.cover,
+                                  )
+                                : null,
+                            color: listing.coverImageUrl == null
+                                ? Colors.grey[300]
+                                : null,
                           ),
-                        )
-                      else
-                        Container(
-                          width: double.infinity,
-                          height: 200,
-                          color: Colors.grey[300],
-                          child: const Icon(
-                            Icons.book,
-                            size: 100,
-                            color: Colors.grey,
-                          ),
+                          child: listing.coverImageUrl == null
+                              ? const Icon(
+                                  Icons.book,
+                                  size: 50,
+                                  color: Colors.grey,
+                                )
+                              : null,
                         ),
+                      ),
                       
-                      Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    listing.title,
-                                    style: Theme.of(context).textTheme.titleLarge,
+                      // Book Info
+                      Expanded(
+                        flex: 2,
+                        child: Padding(
+                          padding: const EdgeInsets.all(8),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Title
+                              Text(
+                                listing.title,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 2),
+                              
+                              // Author
+                              Text(
+                                listing.author,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[600],
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 4),
+                              
+                              // Condition Badge
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: _getConditionColor(listing.condition),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  listing.condition,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
                                   ),
                                 ),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 4,
+                              ),
+                              const Spacer(),
+                              
+                              // Days ago
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.access_time,
+                                    size: 12,
+                                    color: Colors.grey[500],
                                   ),
-                                  decoration: BoxDecoration(
-                                    color: _getStatusColor(listing.status),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Text(
-                                    listing.status,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
+                                  const SizedBox(width: 2),
+                                  Text(
+                                    _getTimeAgo(listing.createdAt),
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      color: Colors.grey[500],
                                     ),
                                   ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'by ${listing.author}',
-                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: Colors.grey[600],
+                                ],
                               ),
-                            ),
-                            const SizedBox(height: 8),
-                            Row(
-                              children: [
-                                const Icon(Icons.swap_horiz, size: 16),
-                                const SizedBox(width: 4),
-                                Text(
-                                  'Swap for: ${listing.swapFor}',
-                                  style: Theme.of(context).textTheme.bodyMedium,
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 4),
-                            Row(
-                              children: [
-                                const Icon(Icons.check_circle, size: 16),
-                                const SizedBox(width: 4),
-                                Text(
-                                  'Condition: ${listing.condition}',
-                                  style: Theme.of(context).textTheme.bodyMedium,
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            if (!isOwner)
-                              SizedBox(
-                                width: double.infinity,
-                                child: ElevatedButton(
-                                  onPressed: canSwap
-                                      ? () => _showSwapDialog(context, listing, userId)
-                                      : null,
-                                  child: const Text('Swap'),
-                                ),
-                              ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                     ],
@@ -300,21 +354,82 @@ class BrowseListingsScreen extends StatelessWidget {
           );
         },
       ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const PostBookScreen()),
+          );
+        },
+        child: const Icon(Icons.add),
+      ),
     );
   }
 
-  Color _getStatusColor(String status) {
-    switch (status) {
-      case 'Active':
+  void _showBookDetails(BuildContext context, BookListing listing) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(listing.title),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (listing.coverImageUrl != null)
+              Center(
+                child: Image.network(
+                  listing.coverImageUrl!,
+                  height: 150,
+                  fit: BoxFit.cover,
+                ),
+              ),
+            const SizedBox(height: 16),
+            Text('Author: ${listing.author}'),
+            const SizedBox(height: 8),
+            Text('Condition: ${listing.condition}'),
+            const SizedBox(height: 8),
+            Text('Swap for: ${listing.swapFor}'),
+            const SizedBox(height: 8),
+            Text('Owner: ${listing.ownerName}'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _getConditionColor(String condition) {
+    switch (condition) {
+      case 'New':
         return Colors.green;
-      case 'Pending':
-        return Colors.orange;
-      case 'Accepted':
+      case 'Like New':
         return Colors.blue;
-      case 'Rejected':
-        return Colors.red;
+      case 'Good':
+        return Colors.orange;
+      case 'Used':
+        return Colors.grey;
       default:
         return Colors.grey;
+    }
+  }
+
+  String _getTimeAgo(DateTime? createdAt) {
+    if (createdAt == null) return 'Recently';
+    
+    final now = DateTime.now();
+    final difference = now.difference(createdAt);
+    
+    if (difference.inDays > 0) {
+      return '${difference.inDays} days ago';
+    } else if (difference.inHours > 0) {
+      return '${difference.inHours} hours ago';
+    } else {
+      return 'Recently';
     }
   }
 }

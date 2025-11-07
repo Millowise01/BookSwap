@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/chat_provider.dart';
-import '../../providers/auth_provider.dart';
+import '../../providers/auth_provider.dart' as app_auth;
 import '../../../domain/models/chat_model.dart';
-import '../chat/chat_screen.dart';
+import '../chat/chat_list_screen.dart';
+import '../chat/chat_detail_screen.dart';
 
 class ChatsScreen extends StatelessWidget {
   const ChatsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final authProvider = Provider.of<AuthProvider>(context);
+    final authProvider = Provider.of<app_auth.AuthProvider>(context);
     final chatProvider = Provider.of<ChatProvider>(context);
     final userId = authProvider.user?.uid ?? '';
 
@@ -88,7 +89,10 @@ class ChatsScreen extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => ChatDetailScreen(chatId: chat.id!),
+                      builder: (context) => ChatDetailScreen(
+                        chatId: chat.id!,
+                        otherUserName: otherPersonName,
+                      ),
                     ),
                   );
                 },
