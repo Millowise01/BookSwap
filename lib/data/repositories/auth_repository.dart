@@ -47,9 +47,7 @@ class AuthRepository {
     final user = _auth.currentUser;
     if (user != null && user.uid == uid) {
       await user.reload();
-      // For development, allow unverified emails to sign in
-      // In production, you might want to enforce email verification
-      return true; // Changed from user.emailVerified to true
+      return user.emailVerified;
     }
     return false;
   }
