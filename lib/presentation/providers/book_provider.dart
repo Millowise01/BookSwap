@@ -21,34 +21,15 @@ class BookProvider with ChangeNotifier {
 
   // Stream all listings
   Stream<List<BookListing>> getAllListings() {
-    try {
-      return _bookRepository.getAllListings().timeout(
-        const Duration(seconds: 5),
-        onTimeout: (sink) {
-          print('Firestore timeout, using mock data');
-          sink.add(MockDataService.getMockListings());
-        },
-      ).handleError((error) {
-        print('Firestore error, using mock data: $error');
-        return MockDataService.getMockListings();
-      }).map((listings) {
-        // Always combine with mock data for a rich marketplace experience
-        final mockListings = MockDataService.getMockListings();
-        return [...mockListings, ...listings];
-      });
-    } catch (e) {
-      print('Error setting up stream, returning mock data: $e');
-      return Stream.value(MockDataService.getMockListings());
-    }
+    return _bookRepository.getAllListings().handleError((error) {
+      print('Firestore error: $error');
+      return <BookListing>[];
+    });
   }
 
   // Stream user's listings
   Stream<List<BookListing>> getMyListings(String userId) {
-    return _bookRepository.getUserListings(userId).handleError((error) {
-      print('Firestore error, using empty list: $error');
-      // Return empty list if Firestore fails for user listings
-      return Stream.value(<BookListing>[]);
-    });
+    return _bookRepository.getUserListings(userId);
   }
 
   Future<bool> createBookListing({
@@ -78,7 +59,9 @@ class BookProvider with ChangeNotifier {
         createdAt: DateTime.now(),
       );
 
-      final listingId = await _bookRepository.createBookListing(book);
+      final listingId = await _bookRepository.createBookListing(book).timeout(
+        const Duration(seconds: 10),
+      );
 
       // Upload image if provided (skip if fails)
       if (imageFile != null) {
@@ -104,11 +87,14 @@ class BookProvider with ChangeNotifier {
       notifyListeners();
       return true;
     } catch (e) {
+      print('Book creation failed: $e');
       String errorMsg = 'Failed to post book';
       if (e.toString().contains('permission')) {
         errorMsg = 'Permission denied. Please check Firestore rules.';
       } else if (e.toString().contains('network')) {
         errorMsg = 'Network error. Please check your connection.';
+      } else if (e.toString().contains('firebase')) {
+        errorMsg = 'Firebase error. Please check your configuration.';
       }
       _errorMessage = errorMsg;
       _isLoading = false;

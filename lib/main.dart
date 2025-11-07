@@ -120,7 +120,7 @@ class TestModeScreen extends StatelessWidget {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  bool useTestMode = false;
+  bool useTestMode = false; // Use real Firebase
   AuthRepository.useTestMode = useTestMode;
   
   if (!useTestMode) {

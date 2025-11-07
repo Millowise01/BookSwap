@@ -34,23 +34,63 @@ class _PostBookScreenState extends State<PostBookScreen> {
   }
 
   Future<void> _pickImage() async {
-    final image = await _picker.pickImage(source: ImageSource.gallery);
-    if (image != null) {
-      setState(() {
-        if (kIsWeb) {
-          _webImageUrl = image.path;
-        } else {
-          _selectedImage = File(image.path);
-        }
-      });
+    try {
+      final image = await _picker.pickImage(source: ImageSource.gallery);
+      if (image != null) {
+        setState(() {
+          if (kIsWeb) {
+            _webImageUrl = image.path;
+            _selectedImage = null;
+          } else {
+            _selectedImage = File(image.path);
+            _webImageUrl = null;
+          }
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to pick image: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
   Future<void> _submit() async {
-    if (_formKey.currentState!.validate() && _selectedCondition != null) {
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      final bookProvider = Provider.of<BookProvider>(context, listen: false);
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+    
+    if (_selectedCondition == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select a condition'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
 
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final bookProvider = Provider.of<BookProvider>(context, listen: false);
+
+    // Check if user is authenticated
+    if (authProvider.user == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please sign in to post a book'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+
+    try {
       final success = await bookProvider.createBookListing(
         ownerId: authProvider.user!.uid,
         ownerName: authProvider.userProfile?.name ?? 'User',
@@ -74,6 +114,15 @@ class _PostBookScreenState extends State<PostBookScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(bookProvider.errorMessage ?? 'Failed to post book'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -109,24 +158,42 @@ class _PostBookScreenState extends State<PostBookScreen> {
                   child: (_selectedImage != null || _webImageUrl != null)
                       ? ClipRRect(
                           borderRadius: BorderRadius.circular(12),
-                          child: kIsWeb
-                              ? Container(
-                                  color: Colors.grey[300],
-                                  child: const Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(Icons.image, size: 60, color: Colors.grey),
-                                      SizedBox(height: 8),
-                                      Text('Image Selected', style: TextStyle(color: Colors.grey)),
-                                    ],
-                                  ),
+                          child: kIsWeb && _webImageUrl != null
+                              ? Image.network(
+                                  _webImageUrl!,
+                                  fit: BoxFit.cover,
+                                  width: double.infinity,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Container(
+                                      color: Colors.grey[300],
+                                      child: const Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Icon(Icons.image, size: 60, color: Colors.grey),
+                                          SizedBox(height: 8),
+                                          Text('Image Selected', style: TextStyle(color: Colors.grey)),
+                                        ],
+                                      ),
+                                    );
+                                  },
                                 )
                               : _selectedImage != null
                                   ? Image.file(
                                       _selectedImage!,
                                       fit: BoxFit.cover,
+                                      width: double.infinity,
                                     )
-                                  : const Icon(Icons.error, size: 60),
+                                  : Container(
+                                      color: Colors.grey[300],
+                                      child: const Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Icon(Icons.image, size: 60, color: Colors.grey),
+                                          SizedBox(height: 8),
+                                          Text('Image Selected', style: TextStyle(color: Colors.grey)),
+                                        ],
+                                      ),
+                                    ),
                         )
                       : Column(
                           mainAxisAlignment: MainAxisAlignment.center,

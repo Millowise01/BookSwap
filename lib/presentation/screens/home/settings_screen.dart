@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../providers/auth_provider.dart';
+import '../../services/populate_books.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -144,6 +145,37 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 _chatNotifications = value;
               });
               _saveNotificationSetting('chat_notifications', value);
+            },
+          ),
+          
+          const Divider(),
+          
+          // Admin Actions (for demo)
+          ListTile(
+            leading: const Icon(Icons.library_books),
+            title: const Text('Populate Sample Books'),
+            subtitle: const Text('Add 10 sample books to browse listings'),
+            onTap: () async {
+              try {
+                await PopulateBooksService.addSampleBooks();
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('10 sample books added successfully!'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Failed to add books: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
             },
           ),
           

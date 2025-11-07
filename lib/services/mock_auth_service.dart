@@ -50,8 +50,8 @@ class MockAuthService {
     await Future.delayed(const Duration(seconds: 1));
     
     final user = MockUser(
-      uid: 'mock_${DateTime.now().millisecondsSinceEpoch}',
-      email: email,
+      uid: 'demo_user_123',
+      email: email.isEmpty ? 'demo@bookswap.com' : email,
       emailVerified: true,
     );
     
@@ -59,6 +59,20 @@ class MockAuthService {
     _authStateController.add(user);
     
     return user;
+  }
+  
+  // Auto sign in demo user
+  Future<void> autoSignInDemoUser() async {
+    if (_currentUser == null) {
+      final user = MockUser(
+        uid: 'demo_user_123',
+        email: 'demo@bookswap.com',
+        emailVerified: true,
+      );
+      
+      _currentUser = user;
+      _authStateController.add(user);
+    }
   }
 
   Future<void> signOut() async {
