@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import '../../providers/chat_provider.dart';
 import '../../providers/auth_provider.dart' as app_auth;
 import '../../../domain/models/chat_model.dart';
-import '../chat/chat_list_screen.dart';
+
 import '../chat/chat_detail_screen.dart';
 
 class ChatsScreen extends StatelessWidget {

@@ -6,7 +6,6 @@ import '../../providers/swap_provider.dart';
 import '../../providers/chat_provider.dart';
 import '../../../domain/models/book_model.dart';
 import 'post_book_screen.dart';
-import '../../../services/populate_books.dart';
 
 class BrowseListingsScreen extends StatefulWidget {
   const BrowseListingsScreen({super.key});
@@ -19,14 +18,6 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
   @override
   void initState() {
     super.initState();
-  }
-
-  Future<void> _checkAndPopulateBooks() async {
-    try {
-      await PopulateBooksService.addSampleBooks();
-    } catch (e) {
-      print('Books may already exist: $e');
-    }
   }
 
   void _showSwapDialog(BuildContext context, BookListing listing, String currentUserId) async {
@@ -193,18 +184,13 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
                   ),
                   const SizedBox(height: 24),
                   ElevatedButton(
-                    onPressed: () async {
-                      await PopulateBooksService.addSampleBooks();
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Sample books added!'),
-                            backgroundColor: Colors.green,
-                          ),
-                        );
-                      }
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const PostBookScreen()),
+                      );
                     },
-                    child: const Text('Add Sample Books'),
+                    child: const Text('Post Your First Book'),
                   ),
                 ],
               ),

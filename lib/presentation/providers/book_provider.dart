@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../data/repositories/book_repository.dart';
 import '../../data/repositories/storage_repository.dart';
 import '../../domain/models/book_model.dart';
-import '../../services/mock_data_service.dart';
 
 class BookProvider with ChangeNotifier {
   final BookRepository _bookRepository = BookRepository();
