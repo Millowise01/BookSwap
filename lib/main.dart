@@ -71,13 +71,6 @@ class AuthWrapper extends StatelessWidget {
         }
         
         if (snapshot.hasData && snapshot.data != null) {
-          final user = snapshot.data!;
-          
-          // Check if email is verified
-          if (!user.emailVerified) {
-            return EmailVerificationScreen(user: user);
-          }
-          
           return const MainScreen();
         }
         
@@ -87,74 +80,5 @@ class AuthWrapper extends StatelessWidget {
   }
 }
 
-class EmailVerificationScreen extends StatelessWidget {
-  final dynamic user;
-  const EmailVerificationScreen({super.key, required this.user});
 
-  @override
-  Widget build(BuildContext context) {
-    final authProvider = Provider.of<app_auth.AuthProvider>(context, listen: false);
-    
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Verify Email'),
-        actions: [
-          TextButton(
-            onPressed: () => authProvider.signOut(),
-            child: const Text('Sign Out'),
-          ),
-        ],
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.email, size: 100, color: Colors.blue),
-            const SizedBox(height: 24),
-            const Text(
-              'Verify Your Email',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'We sent a verification email to ${user.email}. Please check your inbox and click the verification link.',
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 32),
-            ElevatedButton(
-              onPressed: () async {
-                await user.reload();
-                if (user.emailVerified) {
-                  // This will trigger the StreamBuilder to rebuild
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Please verify your email first'),
-                      backgroundColor: Colors.orange,
-                    ),
-                  );
-                }
-              },
-              child: const Text('I\'ve Verified My Email'),
-            ),
-            const SizedBox(height: 16),
-            TextButton(
-              onPressed: () async {
-                await authProvider.resendVerificationEmail();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Verification email sent!'),
-                    backgroundColor: Colors.green,
-                  ),
-                );
-              },
-              child: const Text('Resend Email'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
 

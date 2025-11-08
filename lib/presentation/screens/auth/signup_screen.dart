@@ -48,33 +48,20 @@ class _SignupScreenState extends State<SignupScreen> {
           ),
         );
       } else if (success && mounted) {
+        // Sign out the user so they can sign in after verification
+        await authProvider.signOut();
+        
         // Show email verification message
         showDialog(
           context: context,
           barrierDismissible: false,
           builder: (context) => AlertDialog(
-            title: const Text('Verify Your Email'),
+            title: const Text('Account Created!'),
             content: const Text(
               'We\'ve sent a verification email to your inbox. '
-              'Please verify your email to continue.',
+              'Please verify your email, then sign in with your credentials.',
             ),
             actions: [
-              TextButton(
-                onPressed: () async {
-                  await authProvider.resendVerificationEmail();
-                  if (mounted) {
-                    Navigator.pop(context);
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Verification email sent!'),
-                        backgroundColor: Colors.green,
-                      ),
-                    );
-                  }
-                },
-                child: const Text('Resend Email'),
-              ),
               TextButton(
                 onPressed: () {
                   Navigator.pop(context);

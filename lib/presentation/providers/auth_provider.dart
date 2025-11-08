@@ -98,6 +98,17 @@ class AuthProvider with ChangeNotifier {
       );
 
       _user = userCredential.user;
+      
+      // Check if email is verified
+      if (_user != null && !_user!.emailVerified) {
+        await _authRepository.signOut();
+        _user = null;
+        _errorMessage = 'Please verify your email before signing in';
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+      
       await _loadUserProfile();
       _isLoading = false;
       notifyListeners();
@@ -119,6 +130,9 @@ class AuthProvider with ChangeNotifier {
           break;
         case 'too-many-requests':
           errorMsg = 'Too many failed attempts. Try again later';
+          break;
+        case 'invalid-credential':
+          errorMsg = 'Invalid email or password';
           break;
         default:
           errorMsg = e.message ?? 'Sign in failed';
