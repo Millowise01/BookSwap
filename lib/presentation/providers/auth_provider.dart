@@ -25,7 +25,17 @@ class AuthProvider with ChangeNotifier {
     if (_user != null) {
       _loadUserProfile();
     }
-    notifyListeners();
+    
+    // Listen to auth state changes
+    _authRepository.authStateChanges.listen((user) {
+      _user = user;
+      if (user != null) {
+        _loadUserProfile();
+      } else {
+        _userProfile = null;
+      }
+      notifyListeners();
+    });
   }
 
   Future<void> _loadUserProfile() async {
@@ -35,9 +45,7 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
-  Stream<bool> checkEmailVerification(String uid) {
-    return _authRepository.checkEmailVerification(uid);
-  }
+
 
   Future<bool> signUp({
     required String email,

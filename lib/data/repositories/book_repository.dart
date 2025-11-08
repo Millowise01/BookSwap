@@ -3,6 +3,10 @@ import '../../domain/models/book_model.dart';
 
 class BookRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  
+  // Cache streams to avoid multiple subscriptions
+  Stream<List<BookListing>>? _allListingsStream;
+  final Map<String, Stream<List<BookListing>>> _userListingsStreams = {};
 
   // Create book listing
   Future<String> createBookListing(BookListing book) async {
@@ -16,7 +20,7 @@ class BookRepository {
 
   // Get all active listings
   Stream<List<BookListing>> getAllListings() {
-    return _firestore
+    _allListingsStream ??= _firestore
         .collection('listings')
         .snapshots()
         .handleError((error) {
@@ -35,11 +39,12 @@ class BookRepository {
         return <BookListing>[];
       }
     });
+    return _allListingsStream!;
   }
 
   // Get user's listings
   Stream<List<BookListing>> getUserListings(String userId) {
-    return _firestore
+    _userListingsStreams[userId] ??= _firestore
         .collection('listings')
         .where('ownerId', isEqualTo: userId)
         .snapshots()
@@ -59,6 +64,7 @@ class BookRepository {
         return <BookListing>[];
       }
     });
+    return _userListingsStreams[userId]!;
   }
 
   // Get single listing

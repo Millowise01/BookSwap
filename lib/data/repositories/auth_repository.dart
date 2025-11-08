@@ -12,25 +12,7 @@ class AuthRepository {
   // Auth state changes stream
   Stream<User?> get authStateChanges => _auth.authStateChanges();
 
-  // Check if email is verified
-  Stream<bool> checkEmailVerification(String uid) async* {
-    yield await _isEmailVerified(uid);
-    yield* _auth.userChanges().asyncMap((user) async {
-      if (user != null && user.uid == uid) {
-        return _isEmailVerified(uid);
-      }
-      return false;
-    });
-  }
 
-  Future<bool> _isEmailVerified(String uid) async {
-    final user = _auth.currentUser;
-    if (user != null && user.uid == uid) {
-      await user.reload();
-      return user.emailVerified;
-    }
-    return false;
-  }
 
   // Sign up
   Future<UserCredential> signUp({
