@@ -52,70 +52,40 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final userProfile = authProvider.userProfile;
 
     return Scaffold(
+      backgroundColor: const Color(0xFF1A1A2E),
       appBar: AppBar(
         title: const Text('Settings'),
+        backgroundColor: const Color(0xFF1A1A2E),
+        foregroundColor: Colors.white,
+        elevation: 0,
       ),
       body: ListView(
         children: [
-          // Profile Section
-          Container(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              children: [
-                CircleAvatar(
-                  radius: 50,
-                  backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                  child: Text(
-                    userProfile?.name?.substring(0, 1).toUpperCase() ?? 'U',
-                    style: TextStyle(
-                      fontSize: 40,
-                      color: Theme.of(context).colorScheme.primary,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  userProfile?.name ?? 'User',
-                  style: Theme.of(context).textTheme.headlineSmall,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  userProfile?.email ?? '',
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-              ],
-            ),
-          ),
+
           
           const Divider(),
           
-          // Profile Information
-          ListTile(
-            leading: const Icon(Icons.person),
-            title: const Text('Name'),
-            subtitle: Text(userProfile?.name ?? 'Loading...'),
-            trailing: userProfile?.name != null ? const Icon(Icons.verified, color: Colors.green) : null,
-          ),
-          ListTile(
-            leading: const Icon(Icons.email),
-            title: const Text('Email'),
-            subtitle: Text(userProfile?.email ?? 'Loading...'),
-          ),
-          ListTile(
-            leading: const Icon(Icons.school),
-            title: const Text('University'),
-            subtitle: Text(userProfile?.university ?? 'Not set'),
+          // About Section
+          const Padding(
+            padding: EdgeInsets.all(16),
+            child: Text(
+              'About',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
           
           const Divider(),
           
           // Notification Settings
           SwitchListTile(
-            secondary: const Icon(Icons.notifications),
-            title: const Text('Swap Reminders'),
-            subtitle: const Text('Get reminders about pending swaps'),
+            secondary: const Icon(Icons.notifications, color: Colors.grey),
+            title: const Text('Notification reminders', style: TextStyle(color: Colors.white)),
             value: _notificationReminders,
+            activeColor: Colors.orange,
             onChanged: (value) {
               setState(() {
                 _notificationReminders = value;
@@ -124,10 +94,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
             },
           ),
           SwitchListTile(
-            secondary: const Icon(Icons.email),
-            title: const Text('Email Notifications'),
-            subtitle: const Text('Receive swap updates via email'),
+            secondary: const Icon(Icons.email, color: Colors.grey),
+            title: const Text('Email Updates', style: TextStyle(color: Colors.white)),
             value: _emailUpdates,
+            activeColor: Colors.orange,
             onChanged: (value) {
               setState(() {
                 _emailUpdates = value;
@@ -135,90 +105,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               _saveNotificationSetting('email_updates', value);
             },
           ),
-          SwitchListTile(
-            secondary: const Icon(Icons.chat),
-            title: const Text('Chat Notifications'),
-            subtitle: const Text('Get notified of new messages'),
-            value: _chatNotifications,
-            onChanged: (value) {
-              setState(() {
-                _chatNotifications = value;
-              });
-              _saveNotificationSetting('chat_notifications', value);
-            },
-          ),
-          
-          const Divider(),
-          
-          // Admin Actions (for demo)
-          ListTile(
-            leading: const Icon(Icons.library_books),
-            title: const Text('Populate Sample Books'),
-            subtitle: const Text('Add 10 sample books to browse listings'),
-            onTap: () async {
-              try {
-                await PopulateBooksService.addSampleBooks();
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('10 sample books added successfully!'),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
-                }
-              } catch (e) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Failed to add books: $e'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
-              }
-            },
-          ),
-          
-          const Divider(),
-          
-          // Log Out Button
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: SizedBox(
-              width: double.infinity,
-              height: 56,
-              child: OutlinedButton.icon(
-                onPressed: () {
-                  showDialog(
-                    context: context,
-                    builder: (context) => AlertDialog(
-                      title: const Text('Log Out'),
-                      content: const Text('Are you sure you want to log out?'),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: const Text('Cancel'),
-                        ),
-                        TextButton(
-                          onPressed: () async {
-                            await authProvider.signOut();
-                            if (context.mounted) {
-                              Navigator.pop(context);
-                            }
-                          },
-                          style: TextButton.styleFrom(foregroundColor: Colors.red),
-                          child: const Text('Log Out'),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.logout),
-                label: const Text('Log Out'),
-                style: OutlinedButton.styleFrom(foregroundColor: Colors.red),
-              ),
-            ),
-          ),
+
         ],
       ),
     );

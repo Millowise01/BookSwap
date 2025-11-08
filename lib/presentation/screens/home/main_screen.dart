@@ -27,14 +27,19 @@ class _MainScreenState extends State<MainScreen> {
       body: _screens[_currentIndex],
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
-          color: Color(0xFF2C3E50),
+          color: Color(0xFF1A1A2E),
+          border: Border(
+            top: BorderSide(color: Colors.grey, width: 0.2),
+          ),
         ),
         child: BottomNavigationBar(
           type: BottomNavigationBarType.fixed,
-          backgroundColor: const Color(0xFF2C3E50),
-          selectedItemColor: const Color(0xFFF39C12),
-          unselectedItemColor: Colors.white70,
+          backgroundColor: const Color(0xFF1A1A2E),
+          selectedItemColor: Colors.orange,
+          unselectedItemColor: Colors.grey,
           currentIndex: _currentIndex,
+          selectedLabelStyle: const TextStyle(fontSize: 12),
+          unselectedLabelStyle: const TextStyle(fontSize: 12),
           onTap: (index) {
             setState(() {
               _currentIndex = index;
@@ -42,19 +47,23 @@ class _MainScreenState extends State<MainScreen> {
           },
           items: const [
             BottomNavigationBarItem(
-              icon: Icon(Icons.home),
+              icon: Icon(Icons.home_outlined),
+              activeIcon: Icon(Icons.home),
               label: 'Home',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.book),
+              icon: Icon(Icons.book_outlined),
+              activeIcon: Icon(Icons.book),
               label: 'My Listings',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.chat),
+              icon: Icon(Icons.chat_bubble_outline),
+              activeIcon: Icon(Icons.chat_bubble),
               label: 'Chats',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.settings),
+              icon: Icon(Icons.settings_outlined),
+              activeIcon: Icon(Icons.settings),
               label: 'Settings',
             ),
           ],

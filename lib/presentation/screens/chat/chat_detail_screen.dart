@@ -70,8 +70,18 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     final authProvider = Provider.of<app_auth.AuthProvider>(context);
 
     return Scaffold(
+      backgroundColor: const Color(0xFF1A1A2E),
       appBar: AppBar(
         title: Text(widget.otherUserName),
+        backgroundColor: const Color(0xFF1A1A2E),
+        foregroundColor: Colors.white,
+        elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.more_vert),
+            onPressed: () {},
+          ),
+        ],
       ),
       body: Column(
         children: [
@@ -124,53 +134,75 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                     final message = messages[messages.length - 1 - index];
                     final isMe = message.senderId == authProvider.user?.uid;
 
-                    return Align(
-                      alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
-                      child: Container(
-                        margin: const EdgeInsets.only(bottom: 8),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 10,
-                        ),
-                        constraints: BoxConstraints(
-                          maxWidth: MediaQuery.of(context).size.width * 0.75,
-                        ),
-                        decoration: BoxDecoration(
-                          color: isMe
-                              ? Theme.of(context).colorScheme.primary
-                              : Colors.grey[300],
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            if (!isMe)
-                              Text(
-                                message.senderName,
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Row(
+                        mainAxisAlignment: isMe
+                            ? MainAxisAlignment.end
+                            : MainAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (!isMe)
+                            CircleAvatar(
+                              radius: 16,
+                              backgroundColor: Colors.grey[600],
+                              child: Text(
+                                message.senderName[0].toUpperCase(),
+                                style: const TextStyle(
+                                  color: Colors.white,
                                   fontSize: 12,
-                                  color: Colors.grey[600],
+                                  fontWeight: FontWeight.bold,
                                 ),
                               ),
-                            Text(
-                              message.text,
-                              style: TextStyle(
-                                color: isMe ? Colors.white : Colors.black87,
+                            ),
+                          if (!isMe) const SizedBox(width: 8),
+                          Flexible(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
+                              decoration: BoxDecoration(
+                                color: isMe ? Colors.orange : const Color(0xFF2C3E50),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    message.text,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    _formatTime(message.timestamp),
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey[300],
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                            const SizedBox(height: 4),
-                            Text(
-                              _formatTime(message.timestamp),
-                              style: TextStyle(
-                                fontSize: 10,
-                                color: isMe
-                                    ? Colors.white70
-                                    : Colors.grey[600],
+                          ),
+                          if (isMe) const SizedBox(width: 8),
+                          if (isMe)
+                            CircleAvatar(
+                              radius: 16,
+                              backgroundColor: Colors.orange,
+                              child: Text(
+                                authProvider.userProfile?.name?[0].toUpperCase() ?? 'U',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
-                          ],
-                        ),
+                        ],
                       ),
                     );
                   },
@@ -181,45 +213,49 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
           // Message Input
           Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.grey[300]!,
-                  blurRadius: 5,
-                  offset: const Offset(0, -2),
-                ),
-              ],
+            padding: const EdgeInsets.all(16),
+            decoration: const BoxDecoration(
+              color: Color(0xFF1A1A2E),
+              border: Border(
+                top: BorderSide(color: Colors.grey, width: 0.2),
+              ),
             ),
             child: SafeArea(
               child: Row(
                 children: [
                   Expanded(
-                    child: TextField(
-                      controller: _textController,
-                      decoration: InputDecoration(
-                        hintText: 'Type a message...',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
-                        ),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF2C3E50),
+                        borderRadius: BorderRadius.circular(25),
                       ),
-                      maxLines: null,
-                      textInputAction: TextInputAction.send,
-                      onSubmitted: (_) => _sendMessage(),
+                      child: TextField(
+                        controller: _textController,
+                        style: const TextStyle(color: Colors.white),
+                        decoration: const InputDecoration(
+                          hintText: 'Message',
+                          hintStyle: TextStyle(color: Colors.grey),
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 12,
+                          ),
+                        ),
+                        maxLines: null,
+                        textInputAction: TextInputAction.send,
+                        onSubmitted: (_) => _sendMessage(),
+                      ),
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  IconButton(
-                    onPressed: chatProvider.isLoading ? null : _sendMessage,
-                    icon: const Icon(Icons.send),
-                    style: IconButton.styleFrom(
-                      backgroundColor: Theme.of(context).colorScheme.primary,
-                      foregroundColor: Colors.white,
+                  const SizedBox(width: 12),
+                  Container(
+                    decoration: const BoxDecoration(
+                      color: Colors.orange,
+                      shape: BoxShape.circle,
+                    ),
+                    child: IconButton(
+                      onPressed: chatProvider.isLoading ? null : _sendMessage,
+                      icon: const Icon(Icons.send, color: Colors.white),
                     ),
                   ),
                 ],

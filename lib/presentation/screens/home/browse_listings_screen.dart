@@ -135,10 +135,12 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
     final userId = authProvider.user?.uid ?? '';
 
     return Scaffold(
+      backgroundColor: const Color(0xFF1A1A2E),
       appBar: AppBar(
         title: const Text('Browse Listings'),
-        backgroundColor: const Color(0xFF2C3E50),
+        backgroundColor: const Color(0xFF1A1A2E),
         foregroundColor: Colors.white,
+        elevation: 0,
       ),
       body: StreamBuilder<List<BookListing>>(
         stream: bookProvider.getAllListings(),
@@ -197,23 +199,18 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
             );
           }
 
-          return GridView.builder(
+          return ListView.builder(
             padding: const EdgeInsets.all(16),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              childAspectRatio: 0.65,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-            ),
             itemCount: listings.length,
             itemBuilder: (context, index) {
               final listing = listings[index];
               final isOwner = listing.ownerId == userId;
               final canSwap = !isOwner && listing.status == 'Active';
 
-              return Card(
-                elevation: 4,
-                shape: RoundedRectangleBorder(
+              return Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF2C3E50),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: InkWell(
@@ -225,18 +222,16 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
                       _showBookDetails(context, listing);
                     }
                   },
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Cover Image
-                      Expanded(
-                        flex: 3,
-                        child: Container(
-                          width: double.infinity,
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Row(
+                      children: [
+                        // Book Cover
+                        Container(
+                          width: 60,
+                          height: 80,
                           decoration: BoxDecoration(
-                            borderRadius: const BorderRadius.vertical(
-                              top: Radius.circular(12),
-                            ),
+                            borderRadius: BorderRadius.circular(8),
                             image: listing.coverImageUrl != null
                                 ? DecorationImage(
                                     image: NetworkImage(listing.coverImageUrl!),
@@ -244,95 +239,86 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
                                   )
                                 : null,
                             color: listing.coverImageUrl == null
-                                ? Colors.grey[300]
+                                ? Colors.grey[600]
                                 : null,
                           ),
                           child: listing.coverImageUrl == null
                               ? const Icon(
                                   Icons.book,
-                                  size: 50,
-                                  color: Colors.grey,
+                                  color: Colors.white,
+                                  size: 30,
                                 )
                               : null,
                         ),
-                      ),
-                      
-                      // Book Info
-                      Expanded(
-                        flex: 2,
-                        child: Padding(
-                          padding: const EdgeInsets.all(8),
+                        const SizedBox(width: 12),
+                        
+                        // Book Info
+                        Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // Title
                               Text(
                                 listing.title,
                                 style: const TextStyle(
+                                  color: Colors.white,
                                   fontWeight: FontWeight.bold,
-                                  fontSize: 14,
+                                  fontSize: 16,
                                 ),
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                               ),
-                              const SizedBox(height: 2),
-                              
-                              // Author
+                              const SizedBox(height: 4),
                               Text(
-                                listing.author,
+                                'By ${listing.author}',
                                 style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey[600],
+                                  color: Colors.grey[300],
+                                  fontSize: 14,
                                 ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
                               ),
                               const SizedBox(height: 4),
-                              
-                              // Condition Badge
                               Container(
                                 padding: const EdgeInsets.symmetric(
-                                  horizontal: 6,
-                                  vertical: 2,
+                                  horizontal: 8,
+                                  vertical: 4,
                                 ),
                                 decoration: BoxDecoration(
                                   color: _getConditionColor(listing.condition),
-                                  borderRadius: BorderRadius.circular(8),
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Text(
                                   listing.condition,
                                   style: const TextStyle(
                                     color: Colors.white,
-                                    fontSize: 10,
+                                    fontSize: 12,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
                               ),
-                              const Spacer(),
-                              
-                              // Days ago
-                              Row(
-                                children: [
-                                  Icon(
-                                    Icons.access_time,
-                                    size: 12,
-                                    color: Colors.grey[500],
-                                  ),
-                                  const SizedBox(width: 2),
-                                  Text(
-                                    _getTimeAgo(listing.createdAt),
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      color: Colors.grey[500],
-                                    ),
-                                  ),
-                                ],
-                              ),
                             ],
                           ),
                         ),
-                      ),
-                    ],
+                        
+                        // Time and Chat Icon
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Icon(
+                              Icons.chat_bubble_outline,
+                              color: Colors.grey[400],
+                              size: 20,
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              _getTimeAgo(listing.createdAt),
+                              style: TextStyle(
+                                color: Colors.grey[400],
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               );
