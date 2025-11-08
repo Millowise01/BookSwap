@@ -6,6 +6,7 @@ import '../../providers/swap_provider.dart';
 import '../../providers/chat_provider.dart';
 import '../../../domain/models/book_model.dart';
 import 'post_book_screen.dart';
+import '../../../services/populate_books.dart';
 
 class BrowseListingsScreen extends StatefulWidget {
   const BrowseListingsScreen({super.key});
@@ -18,6 +19,40 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
   @override
   void initState() {
     super.initState();
+  }
+
+  void _startDirectChat(BuildContext context, BookListing listing, String currentUserId) async {
+    final chatProvider = Provider.of<ChatProvider>(context, listen: false);
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    
+    try {
+      await chatProvider.createChat(
+        participants: [currentUserId, listing.ownerId],
+        participant1Id: currentUserId,
+        participant1Name: authProvider.userProfile?.name ?? 'User',
+        participant2Id: listing.ownerId,
+        participant2Name: listing.ownerName,
+        swapRequestId: 'direct_chat',
+      );
+      
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Chat started! Go to Chats tab to message.'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to start chat: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   void _showSwapDialog(BuildContext context, BookListing listing, String currentUserId) async {
@@ -135,12 +170,10 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
     final userId = authProvider.user?.uid ?? '';
 
     return Scaffold(
-      backgroundColor: const Color(0xFF1A1A2E),
       appBar: AppBar(
         title: const Text('Browse Listings'),
-        backgroundColor: const Color(0xFF1A1A2E),
+        backgroundColor: const Color(0xFF2C3E50),
         foregroundColor: Colors.white,
-        elevation: 0,
       ),
       body: StreamBuilder<List<BookListing>>(
         stream: bookProvider.getAllListings(),
@@ -186,31 +219,51 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
                   ),
                   const SizedBox(height: 24),
                   ElevatedButton(
+                    onPressed: () async {
+                      await PopulateBooksService.addSampleBooks();
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Sample books added!'),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+                      }
+                    },
+                    child: const Text('Add Sample Books'),
+                  ),
+                  const SizedBox(height: 16),
+                  OutlinedButton(
                     onPressed: () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(builder: (context) => const PostBookScreen()),
                       );
                     },
-                    child: const Text('Post Your First Book'),
+                    child: const Text('Post Your Own Book'),
                   ),
                 ],
               ),
             );
           }
 
-          return ListView.builder(
+          return GridView.builder(
             padding: const EdgeInsets.all(16),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              childAspectRatio: 0.65,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+            ),
             itemCount: listings.length,
             itemBuilder: (context, index) {
               final listing = listings[index];
               final isOwner = listing.ownerId == userId;
               final canSwap = !isOwner && listing.status == 'Active';
 
-              return Container(
-                margin: const EdgeInsets.only(bottom: 12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF2C3E50),
+              return Card(
+                elevation: 4,
+                shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: InkWell(
@@ -222,16 +275,18 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
                       _showBookDetails(context, listing);
                     }
                   },
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Row(
-                      children: [
-                        // Book Cover
-                        Container(
-                          width: 60,
-                          height: 80,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Cover Image
+                      Expanded(
+                        flex: 3,
+                        child: Container(
+                          width: double.infinity,
                           decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: const BorderRadius.vertical(
+                              top: Radius.circular(12),
+                            ),
                             image: listing.coverImageUrl != null
                                 ? DecorationImage(
                                     image: NetworkImage(listing.coverImageUrl!),
@@ -239,86 +294,95 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
                                   )
                                 : null,
                             color: listing.coverImageUrl == null
-                                ? Colors.grey[600]
+                                ? Colors.grey[300]
                                 : null,
                           ),
                           child: listing.coverImageUrl == null
                               ? const Icon(
                                   Icons.book,
-                                  color: Colors.white,
-                                  size: 30,
+                                  size: 50,
+                                  color: Colors.grey,
                                 )
                               : null,
                         ),
-                        const SizedBox(width: 12),
-                        
-                        // Book Info
-                        Expanded(
+                      ),
+                      
+                      // Book Info
+                      Expanded(
+                        flex: 2,
+                        child: Padding(
+                          padding: const EdgeInsets.all(8),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
+                              // Title
                               Text(
                                 listing.title,
                                 style: const TextStyle(
-                                  color: Colors.white,
                                   fontWeight: FontWeight.bold,
-                                  fontSize: 16,
+                                  fontSize: 14,
                                 ),
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                               ),
-                              const SizedBox(height: 4),
+                              const SizedBox(height: 2),
+                              
+                              // Author
                               Text(
-                                'By ${listing.author}',
+                                listing.author,
                                 style: TextStyle(
-                                  color: Colors.grey[300],
-                                  fontSize: 14,
+                                  fontSize: 12,
+                                  color: Colors.grey[600],
                                 ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                               const SizedBox(height: 4),
+                              
+                              // Condition Badge
                               Container(
                                 padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 4,
+                                  horizontal: 6,
+                                  vertical: 2,
                                 ),
                                 decoration: BoxDecoration(
                                   color: _getConditionColor(listing.condition),
-                                  borderRadius: BorderRadius.circular(12),
+                                  borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Text(
                                   listing.condition,
                                   style: const TextStyle(
                                     color: Colors.white,
-                                    fontSize: 12,
+                                    fontSize: 10,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
                               ),
+                              const Spacer(),
+                              
+                              // Days ago
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.access_time,
+                                    size: 12,
+                                    color: Colors.grey[500],
+                                  ),
+                                  const SizedBox(width: 2),
+                                  Text(
+                                    _getTimeAgo(listing.createdAt),
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      color: Colors.grey[500],
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ],
                           ),
                         ),
-                        
-                        // Time and Chat Icon
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Icon(
-                              Icons.chat_bubble_outline,
-                              color: Colors.grey[400],
-                              size: 20,
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              _getTimeAgo(listing.createdAt),
-                              style: TextStyle(
-                                color: Colors.grey[400],
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
               );
@@ -370,6 +434,22 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
             onPressed: () => Navigator.pop(context),
             child: const Text('Close'),
           ),
+          if (listing.ownerId != (Provider.of<AuthProvider>(context, listen: false).user?.uid ?? ''))
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                _startDirectChat(context, listing, Provider.of<AuthProvider>(context, listen: false).user?.uid ?? '');
+              },
+              child: const Text('Chat'),
+            ),
+          if (listing.ownerId != (Provider.of<AuthProvider>(context, listen: false).user?.uid ?? ''))
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                _showSwapDialog(context, listing, Provider.of<AuthProvider>(context, listen: false).user?.uid ?? '');
+              },
+              child: const Text('Swap'),
+            ),
         ],
       ),
     );

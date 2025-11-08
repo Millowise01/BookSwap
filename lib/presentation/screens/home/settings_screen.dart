@@ -61,21 +61,55 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
       body: ListView(
         children: [
-
+          // Profile Section
+          Container(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              children: [
+                CircleAvatar(
+                  radius: 50,
+                  backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                  child: Text(
+                    userProfile?.name?.substring(0, 1).toUpperCase() ?? 'U',
+                    style: TextStyle(
+                      fontSize: 40,
+                      color: Theme.of(context).colorScheme.primary,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  userProfile?.name ?? 'User',
+                  style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  userProfile?.email ?? '',
+                  style: const TextStyle(color: Colors.grey, fontSize: 16),
+                ),
+              ],
+            ),
+          ),
           
           const Divider(),
           
-          // About Section
-          const Padding(
-            padding: EdgeInsets.all(16),
-            child: Text(
-              'About',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+          // Profile Information
+          ListTile(
+            leading: const Icon(Icons.person, color: Colors.grey),
+            title: const Text('Name', style: TextStyle(color: Colors.white)),
+            subtitle: Text(userProfile?.name ?? 'Loading...', style: const TextStyle(color: Colors.grey)),
+            trailing: userProfile?.name != null ? const Icon(Icons.verified, color: Colors.green) : null,
+          ),
+          ListTile(
+            leading: const Icon(Icons.email, color: Colors.grey),
+            title: const Text('Email', style: TextStyle(color: Colors.white)),
+            subtitle: Text(userProfile?.email ?? 'Loading...', style: const TextStyle(color: Colors.grey)),
+          ),
+          ListTile(
+            leading: const Icon(Icons.school, color: Colors.grey),
+            title: const Text('University', style: TextStyle(color: Colors.white)),
+            subtitle: Text(userProfile?.university ?? 'Not set', style: const TextStyle(color: Colors.grey)),
           ),
           
           const Divider(),
@@ -105,7 +139,47 @@ class _SettingsScreenState extends State<SettingsScreen> {
               _saveNotificationSetting('email_updates', value);
             },
           ),
-
+          
+          const Divider(),
+          
+          // Log Out Button
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: SizedBox(
+              width: double.infinity,
+              height: 56,
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  showDialog(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: const Text('Log Out'),
+                      content: const Text('Are you sure you want to log out?'),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text('Cancel'),
+                        ),
+                        TextButton(
+                          onPressed: () async {
+                            await authProvider.signOut();
+                            if (context.mounted) {
+                              Navigator.pop(context);
+                            }
+                          },
+                          style: TextButton.styleFrom(foregroundColor: Colors.red),
+                          child: const Text('Log Out'),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.logout),
+                label: const Text('Log Out'),
+                style: OutlinedButton.styleFrom(foregroundColor: Colors.red),
+              ),
+            ),
+          ),
         ],
       ),
     );

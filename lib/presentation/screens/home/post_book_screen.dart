@@ -135,12 +135,8 @@ class _PostBookScreenState extends State<PostBookScreen> {
     final bookProvider = Provider.of<BookProvider>(context);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF1A1A2E),
       appBar: AppBar(
         title: const Text('Post a Book'),
-        backgroundColor: const Color(0xFF1A1A2E),
-        foregroundColor: Colors.white,
-        elevation: 0,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
@@ -221,20 +217,10 @@ class _PostBookScreenState extends State<PostBookScreen> {
               // Title
               TextFormField(
                 controller: _titleController,
-                style: const TextStyle(color: Colors.white),
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: 'Book Title',
-                  labelStyle: const TextStyle(color: Colors.grey),
-                  border: OutlineInputBorder(
-                    borderSide: const BorderSide(color: Colors.grey),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderSide: const BorderSide(color: Colors.grey),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderSide: const BorderSide(color: Colors.orange),
-                  ),
-                  prefixIcon: const Icon(Icons.title, color: Colors.grey),
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.title),
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
@@ -248,20 +234,10 @@ class _PostBookScreenState extends State<PostBookScreen> {
               // Author
               TextFormField(
                 controller: _authorController,
-                style: const TextStyle(color: Colors.white),
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: 'Author',
-                  labelStyle: const TextStyle(color: Colors.grey),
-                  border: OutlineInputBorder(
-                    borderSide: const BorderSide(color: Colors.grey),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderSide: const BorderSide(color: Colors.grey),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderSide: const BorderSide(color: Colors.orange),
-                  ),
-                  prefixIcon: const Icon(Icons.person, color: Colors.grey),
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.person),
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
@@ -275,22 +251,11 @@ class _PostBookScreenState extends State<PostBookScreen> {
               // Swap For
               TextFormField(
                 controller: _swapForController,
-                style: const TextStyle(color: Colors.white),
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: 'Swap For',
-                  labelStyle: const TextStyle(color: Colors.grey),
-                  border: OutlineInputBorder(
-                    borderSide: const BorderSide(color: Colors.grey),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderSide: const BorderSide(color: Colors.grey),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderSide: const BorderSide(color: Colors.orange),
-                  ),
-                  prefixIcon: const Icon(Icons.swap_horiz, color: Colors.grey),
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.swap_horiz),
                   helperText: 'What book or subject do you want in return?',
-                  helperStyle: const TextStyle(color: Colors.grey),
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
@@ -303,29 +268,18 @@ class _PostBookScreenState extends State<PostBookScreen> {
 
               // Condition
               DropdownButtonFormField<String>(
-                style: const TextStyle(color: Colors.white),
-                dropdownColor: const Color(0xFF2C3E50),
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: 'Condition',
-                  labelStyle: const TextStyle(color: Colors.grey),
-                  border: OutlineInputBorder(
-                    borderSide: const BorderSide(color: Colors.grey),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderSide: const BorderSide(color: Colors.grey),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderSide: const BorderSide(color: Colors.orange),
-                  ),
-                  prefixIcon: const Icon(Icons.check_circle, color: Colors.grey),
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.check_circle),
                 ),
                 items: _conditions.map((condition) {
                   return DropdownMenuItem(
                     value: condition,
-                    child: Text(condition, style: const TextStyle(color: Colors.white)),
+                    child: Text(condition),
                   );
                 }).toList(),
-                value: _selectedCondition,
+                initialValue: _selectedCondition,
                 onChanged: (value) {
                   setState(() {
                     _selectedCondition = value;
@@ -343,31 +297,15 @@ class _PostBookScreenState extends State<PostBookScreen> {
               // Submit Button
               SizedBox(
                 height: 56,
-                child: ElevatedButton(
+                child: FilledButton(
                   onPressed: bookProvider.isLoading ? null : _submit,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.orange,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
                   child: bookProvider.isLoading
                       ? const SizedBox(
                           height: 20,
                           width: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
+                          child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Text(
-                          'Post',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                      : const Text('Post Book'),
                 ),
               ),
             ],
