@@ -13,6 +13,7 @@ class UserModel {
     this.profileImageUrl,
   });
 
+  // Convert to JSON for Firestore storage
   Map<String, dynamic> toJson() {
     return {
       'uid': uid,
@@ -23,6 +24,7 @@ class UserModel {
     };
   }
 
+  // Create model from Firestore JSON data
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
       uid: json['uid'] as String,
@@ -33,6 +35,7 @@ class UserModel {
     );
   }
 
+  // Utility to create a new instance with optional changed values
   UserModel copyWith({
     String? uid,
     String? email,
@@ -49,4 +52,3 @@ class UserModel {
     );
   }
 }
-

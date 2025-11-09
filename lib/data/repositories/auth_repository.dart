@@ -1,6 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../../domain/models/user_model.dart';
+import '../../domain/models/user_model.dart'; // Using the updated model
 
 class AuthRepository {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -25,11 +25,13 @@ class AuthRepository {
         password: password,
       ).timeout(const Duration(seconds: 30));
 
+      // 1. Send verification email
       userCredential.user?.sendEmailVerification().catchError((e) {
         print('Email verification error: $e');
       });
 
-      _createUserProfile(userCredential.user?.uid, email, name, university);
+      // 2. Await profile creation to ensure data is written before sign up finishes
+      await _createUserProfile(userCredential.user?.uid, email, name, university);
 
       return userCredential;
     } catch (e) {
@@ -38,8 +40,8 @@ class AuthRepository {
     }
   }
 
-  // Create user profile asynchronously
-  void _createUserProfile(String? uid, String email, String name, String university) async {
+  // Create user profile
+  Future<void> _createUserProfile(String? uid, String email, String name, String university) async {
     if (uid == null) return;
     
     try {
@@ -48,16 +50,17 @@ class AuthRepository {
         email: email,
         name: name,
         university: university,
+        profileImageUrl: null, // Profile image starts as null
       );
       
+      // Store user profile in the 'users' collection
       await _firestore.collection('users').doc(uid).set(userModel.toJson());
     } catch (e) {
       print('Error creating user profile: $e');
-      // Don't throw - profile creation is non-critical
     }
   }
 
-  // Sign in
+  // Sign in (WITH EMAIL VERIFICATION ENFORCEMENT)
   Future<UserCredential> signIn({
     required String email,
     required String password,
@@ -68,9 +71,32 @@ class AuthRepository {
         password: password,
       ).timeout(const Duration(seconds: 30));
 
+      final user = userCredential.user;
+      
+      // CRITICAL: Check if the email is verified
+      if (user != null && !user.emailVerified) {
+        
+        // Re-send verification email for convenience (optional but recommended)
+        user.sendEmailVerification().catchError((e) {
+           print('Error resending verification email during failed sign-in: $e');
+        });
+
+        // If not verified, immediately sign the user out
+        await _auth.signOut(); 
+        
+        // Throw a specific error that the UI can catch
+        throw FirebaseAuthException(
+          code: 'email-not-verified',
+          message: 'Please verify your email address before logging in. A new verification link has been sent.',
+        );
+      }
+
       return userCredential;
-    } catch (e) {
+    } on FirebaseAuthException catch (e) {
       print('Signin error: $e');
+      rethrow;
+    } catch (e) {
+      print('Unexpected Signin error: $e');
       rethrow;
     }
   }
@@ -83,38 +109,28 @@ class AuthRepository {
   // Resend verification email
   Future<void> resendVerificationEmail() async {
     final user = _auth.currentUser;
-    if (user != null) {
+    // Must reload the user data first to get the latest email verification status
+    await user?.reload(); 
+    if (user != null && !user.emailVerified) {
       await user.sendEmailVerification();
     }
   }
 
-  // Get user profile
+  // Get user profile (One-time fetch)
   Future<UserModel?> getUserProfile(String uid) async {
     try {
       final doc = await _firestore.collection('users').doc(uid).get();
       if (doc.exists) {
         return UserModel.fromJson(doc.data()!);
       }
-      // Return basic profile if not found in Firestore
-      return UserModel(
-        uid: uid,
-        email: _auth.currentUser?.email ?? '',
-        name: _auth.currentUser?.displayName,
-        university: null,
-      );
+      return null;
     } catch (e) {
       print('Error getting user profile: $e');
-      // Return basic profile on error
-      return UserModel(
-        uid: uid,
-        email: _auth.currentUser?.email ?? '',
-        name: _auth.currentUser?.displayName,
-        university: null,
-      );
+      return null;
     }
   }
 
-  // Stream user profile
+  // Stream user profile (Real-time updates)
   Stream<UserModel?> streamUserProfile(String uid) {
     return _firestore
         .collection('users')
@@ -123,5 +139,3 @@ class AuthRepository {
         .map((doc) => doc.exists ? UserModel.fromJson(doc.data()!) : null);
   }
 }
-
-

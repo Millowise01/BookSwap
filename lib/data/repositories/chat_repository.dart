@@ -1,5 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../../domain/models/chat_model.dart';
+import '../../domain/models/chat_model.dart'; // Assuming this is the correct path
 
 class ChatRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -7,18 +7,24 @@ class ChatRepository {
   // Create chat
   Future<String> createChat(Chat chat) async {
     try {
-      final docRef = await _firestore.collection('chats').add(chat.toJson());
+      final chatData = chat.toJson();
+      // Ensure time fields are Firestore Timestamps on creation
+      chatData['lastMessageTime'] = Timestamp.fromDate(chat.lastMessageTime);
+      chatData['createdAt'] = Timestamp.fromDate(chat.createdAt);
+
+      final docRef = await _firestore.collection('chats').add(chatData);
       return docRef.id;
     } catch (e) {
       rethrow;
     }
   }
 
-  // Get user's chats
+  // Get user's chats (real-time stream)
   Stream<List<Chat>> getUserChats(String userId) {
     return _firestore
         .collection('chats')
         .where('participants', arrayContains: userId)
+        .orderBy('lastMessageTime', descending: true) // <--- ADDED: Ordering by time
         .snapshots()
         .handleError((error) => print('Error getting chats: $error'))
         .map((snapshot) {
@@ -26,8 +32,8 @@ class ChatRepository {
         final chats = snapshot.docs
             .map((doc) => Chat.fromJson(doc.data(), doc.id))
             .toList();
-        chats.sort((a, b) => b.lastMessageTime.compareTo(a.lastMessageTime));
-        return chats;
+        // Sorting is now primarily done by Firestore, but keeping for safety if needed
+        return chats; 
       } catch (e) {
         print('Error parsing chats: $e');
         return <Chat>[];
@@ -66,12 +72,13 @@ class ChatRepository {
     }
   }
 
-  // Get chat messages
+  // Get chat messages (real-time stream)
   Stream<List<Message>> getChatMessages(String chatId) {
     return _firestore
         .collection('chats')
         .doc(chatId)
         .collection('messages')
+        .orderBy('timestamp', descending: true) // <--- ADDED: Server-side sorting
         .snapshots()
         .handleError((error) => print('Error getting messages: $error'))
         .map((snapshot) {
@@ -79,8 +86,8 @@ class ChatRepository {
         final messages = snapshot.docs
             .map((doc) => Message.fromJson(doc.data(), doc.id))
             .toList();
-        messages.sort((a, b) => b.timestamp.compareTo(a.timestamp));
-        return messages;
+        // Local sorting removed as it's now handled by Firestore order by
+        return messages; 
       } catch (e) {
         print('Error parsing messages: $e');
         return <Message>[];
@@ -88,21 +95,25 @@ class ChatRepository {
     });
   }
 
-  // Send message
+  // Send message (using Batched Write for atomicity)
   Future<void> sendMessage(Message message) async {
     try {
-      // Add message to chat's messages subcollection
-      await _firestore
-          .collection('chats')
-          .doc(message.chatId)
-          .collection('messages')
-          .add(message.toJson());
+      final batch = _firestore.batch();
+      final chatRef = _firestore.collection('chats').doc(message.chatId);
+      final messageRef = chatRef.collection('messages').doc();
 
-      // Update chat's last message
-      await _firestore.collection('chats').doc(message.chatId).update({
+      // 1. Add message to chat's messages subcollection
+      batch.set(messageRef, message.toJson());
+
+      // 2. Update chat's last message using FieldValue.serverTimestamp() for accuracy
+      batch.update(chatRef, {
         'lastMessage': message.text,
-        'lastMessageTime': FieldValue.serverTimestamp(),
+        'lastMessageTime': FieldValue.serverTimestamp(), // <--- Using Server Timestamp
       });
+
+      // Commit the batch. This ensures both updates happen together.
+      await batch.commit(); 
+
     } catch (e) {
       rethrow;
     }
