@@ -8,7 +8,7 @@ class StorageRepository {
   // Upload book cover image
   Future<String?> uploadBookCover(String bookId, File imageFile) async {
     try {
-      final ref = _storage.ref().child('books/$bookId.jpg');
+      final ref = _storage.ref().child('book_covers/$bookId.jpg');
       
       if (kIsWeb) {
         // For web, read file as bytes
@@ -29,7 +29,7 @@ class StorageRepository {
   // Delete book cover image
   Future<void> deleteBookCover(String bookId) async {
     try {
-      final ref = _storage.ref().child('books/$bookId.jpg');
+      final ref = _storage.ref().child('book_covers/$bookId.jpg');
       await ref.delete();
     } catch (e) {
       print('Storage delete error: $e');
@@ -37,4 +37,3 @@ class StorageRepository {
     }
   }
 }
-

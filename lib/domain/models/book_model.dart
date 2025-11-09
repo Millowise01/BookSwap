@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class BookListing {
   final String? id;
   final String ownerId;
@@ -38,12 +40,22 @@ class BookListing {
       'condition': condition,
       'coverImageUrl': coverImageUrl,
       'status': status,
-      'createdAt': createdAt.toIso8601String(),
-      'updatedAt': updatedAt?.toIso8601String(),
+      // CRITICAL FIX: Convert DateTime to Firestore Timestamp for consistency
+      'createdAt': Timestamp.fromDate(createdAt), 
+      'updatedAt': updatedAt != null ? Timestamp.fromDate(updatedAt!) : null,
     };
   }
 
   factory BookListing.fromJson(Map<String, dynamic> json, String id) {
+    // Helper function to handle Firestore Timestamp object
+    DateTime _parseTimestamp(dynamic timeData) {
+      if (timeData is Timestamp) {
+        return timeData.toDate();
+      }
+      // Fallback for unexpected data or if the field is null
+      return DateTime.now();
+    }
+    
     return BookListing(
       id: id,
       ownerId: json['ownerId'] as String,
@@ -55,9 +67,10 @@ class BookListing {
       condition: json['condition'] as String,
       coverImageUrl: json['coverImageUrl'] as String?,
       status: json['status'] as String? ?? 'Active',
-      createdAt: DateTime.parse(json['createdAt'] as String),
+      // CRITICAL FIX: Parse Firestore Timestamp
+      createdAt: _parseTimestamp(json['createdAt']),
       updatedAt: json['updatedAt'] != null 
-          ? DateTime.parse(json['updatedAt'] as String)
+          ? _parseTimestamp(json['updatedAt'])
           : null,
     );
   }
