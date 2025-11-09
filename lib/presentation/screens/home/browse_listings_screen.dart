@@ -5,10 +5,12 @@ import '../../providers/book_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/swap_provider.dart';
 import '../../providers/chat_provider.dart';
-import '../../widgets/book_card.dart';
+// IMPORTANT: Ensure this path is correct for the new file
+import '../../widgets/book_card.dart'; 
 import '../../../domain/models/book_model.dart';
 import 'post_book_screen.dart';
-import '../../../services/populate_books.dart';
+import '../../../services/populate_books.dart'; 
+import '../book_details/book_details_screen.dart'; // Assuming you have this screen
 
 class BrowseListingsScreen extends StatefulWidget {
   const BrowseListingsScreen({super.key});
@@ -18,15 +20,12 @@ class BrowseListingsScreen extends StatefulWidget {
 }
 
 class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
-  @override
-  void initState() {
-    super.initState();
-  }
+  // Removed unused initState
 
   void _startDirectChat(BuildContext context, BookListing listing, String currentUserId) async {
     final chatProvider = Provider.of<ChatProvider>(context, listen: false);
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    
+
     try {
       await chatProvider.createChat(
         participants: [currentUserId, listing.ownerId],
@@ -36,7 +35,7 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
         participant2Name: listing.ownerName,
         swapRequestId: 'direct_chat',
       );
-      
+
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -63,7 +62,7 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
     final bookProvider = Provider.of<BookProvider>(context, listen: false);
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
-    // Get user's active listings
+    // Using .first on a Stream to get a single snapshot (safe way to get current data)
     final myListings = await bookProvider.getMyListings(currentUserId).first;
     
     if (myListings.isEmpty) {
@@ -99,9 +98,9 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
                             height: 40,
                             fit: BoxFit.cover,
                             placeholder: (context, url) => const CircularProgressIndicator(strokeWidth: 2),
-                            errorWidget: (context, url, error) => const Icon(Icons.book),
+                            errorWidget: (context, url, error) => const Icon(Icons.broken_image, color: Colors.red),
                           )
-                        : const Icon(Icons.book),
+                        : const Icon(Icons.book, size: 40),
                     title: Text(book.title),
                     subtitle: Text(book.author),
                     onTap: () => Navigator.pop(context, book),
@@ -120,7 +119,6 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
       );
 
       if (myBook != null && context.mounted) {
-        // Create swap request
         final swapId = await swapProvider.createSwapRequest(
           bookOfferedId: myBook.id!,
           bookRequestedId: listing.id!,
@@ -131,7 +129,6 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
         );
 
         if (swapId != null && context.mounted) {
-          // Create chat with swap request ID
           await chatProvider.createChat(
             participants: [currentUserId, listing.ownerId],
             participant1Id: currentUserId,
@@ -164,7 +161,14 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
       }
     }
   }
-
+  
+  void _showBookDetails(BuildContext context, BookListing listing) {
+    Navigator.push(
+      context,
+      // You should navigate to a dedicated detail screen, not a generic AlertDialog
+      MaterialPageRoute(builder: (context) => BookDetailsScreen(listing: listing)),
+    );
+  }
 
 
   @override
@@ -196,18 +200,25 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
           }
 
           if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
+            // Log error to console for debugging
+            debugPrint('Browse Listings Stream Error: ${snapshot.error}');
+            return Center(child: Text('Error loading listings.'));
           }
 
           final listings = snapshot.data ?? [];
           
+          // Optional: Deduplication check for debugging (remove this block once fixed)
+          final uniqueListingIds = listings.map((l) => l.id).toSet();
+          if (uniqueListingIds.length != listings.length) {
+              debugPrint('Warning: Duplicate listings detected in Firestore data stream.');
+          }
           if (listings.isEmpty) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(
-                    Icons.book,
+                    Icons.book_outlined, // Changed to outlined for consistency
                     size: 100,
                     color: Colors.grey[400],
                   ),
@@ -224,15 +235,18 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
                   const SizedBox(height: 24),
                   ElevatedButton(
                     onPressed: () async {
-                      await PopulateBooksService.addSampleBooks();
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Sample books added!'),
-                            backgroundColor: Colors.green,
-                          ),
-                        );
-                      }
+                      // Using Future.microtask to avoid triggering warnings in sync context
+                      await Future.microtask(() async {
+                        await PopulateBooksService.addSampleBooks();
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Sample books added!'),
+                              backgroundColor: Colors.green,
+                            ),
+                          );
+                        }
+                      });
                     },
                     child: const Text('Add Sample Books'),
                   ),
@@ -255,7 +269,8 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
             padding: const EdgeInsets.all(16),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
-              childAspectRatio: 0.7,
+              // Keeping 0.7, but rely on BookCard internal constraints for safety.
+              childAspectRatio: 0.7, 
               crossAxisSpacing: 16,
               mainAxisSpacing: 16,
             ),
@@ -273,6 +288,7 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
                   if (canSwap) {
                     _showSwapDialog(context, listing, userId);
                   } else {
+                    // Use the new navigation to a detail screen
                     _showBookDetails(context, listing);
                   }
                 },
@@ -292,68 +308,4 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
       ),
     );
   }
-
-  void _showBookDetails(BuildContext context, BookListing listing) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(listing.title),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (listing.coverImageUrl != null)
-              Center(
-                child: CachedNetworkImage(
-                  imageUrl: listing.coverImageUrl!,
-                  height: 150,
-                  fit: BoxFit.cover,
-                  placeholder: (context, url) => const SizedBox(
-                    height: 150,
-                    child: Center(child: CircularProgressIndicator()),
-                  ),
-                  errorWidget: (context, url, error) => Container(
-                    height: 150,
-                    color: Colors.grey[300],
-                    child: const Icon(Icons.broken_image, size: 50),
-                  ),
-                ),
-              ),
-            const SizedBox(height: 16),
-            Text('Author: ${listing.author}'),
-            const SizedBox(height: 8),
-            Text('Condition: ${listing.condition}'),
-            const SizedBox(height: 8),
-            Text('Swap for: ${listing.swapFor}'),
-            const SizedBox(height: 8),
-            Text('Owner: ${listing.ownerName}'),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-          if (listing.ownerId != (Provider.of<AuthProvider>(context, listen: false).user?.uid ?? ''))
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-                _startDirectChat(context, listing, Provider.of<AuthProvider>(context, listen: false).user?.uid ?? '');
-              },
-              child: const Text('Chat'),
-            ),
-          if (listing.ownerId != (Provider.of<AuthProvider>(context, listen: false).user?.uid ?? ''))
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-                _showSwapDialog(context, listing, Provider.of<AuthProvider>(context, listen: false).user?.uid ?? '');
-              },
-              child: const Text('Swap'),
-            ),
-        ],
-      ),
-    );
-  }
-
-
 }

@@ -8,20 +8,24 @@ class BookProvider with ChangeNotifier {
   final BookRepository _bookRepository = BookRepository();
   final StorageRepository _storageRepository = StorageRepository();
 
-  final List<BookListing> _allListings = [];
-  final List<BookListing> _myListings = [];
+  // Removed internal lists (_allListings, _myListings) as the UI uses StreamBuilder
+  // and they were causing confusion/redundancy.
+
   bool _isLoading = false;
   String? _errorMessage;
 
-  List<BookListing> get allListings => _allListings;
-  List<BookListing> get myListings => _myListings;
+  // Exposed properties remain
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
+  // --- Stream Methods (Remain Unchanged, as StreamBuilder handles state) ---
+
   // Stream all listings
   Stream<List<BookListing>> getAllListings() {
+    // The underlying repository should ensure unique IDs are returned.
+    // If duplication persists, it means duplicate documents exist in Firestore.
     return _bookRepository.getAllListings().handleError((error) {
-      print('Firestore error: $error');
+      debugPrint('Firestore error: $error');
       return <BookListing>[];
     });
   }
@@ -30,6 +34,8 @@ class BookProvider with ChangeNotifier {
   Stream<List<BookListing>> getMyListings(String userId) {
     return _bookRepository.getUserListings(userId);
   }
+
+  // --- Mutator Methods (Remain largely the same) ---
 
   Future<bool> createBookListing({
     required String ownerId,
@@ -46,7 +52,6 @@ class BookProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      // Create listing first to get the ID
       final book = BookListing(
         ownerId: ownerId,
         ownerName: ownerName,
@@ -56,13 +61,13 @@ class BookProvider with ChangeNotifier {
         swapFor: swapFor,
         condition: condition,
         createdAt: DateTime.now(),
+        status: 'Active', // Ensure status is set
       );
 
       final listingId = await _bookRepository.createBookListing(book).timeout(
         const Duration(seconds: 10),
       );
 
-      // Upload image if provided (skip if fails)
       if (imageFile != null) {
         try {
           final coverImageUrl = await _storageRepository.uploadBookCover(
@@ -70,15 +75,13 @@ class BookProvider with ChangeNotifier {
             imageFile,
           );
 
-          // Update listing with image URL
           final bookWithImage = book.copyWith(
             id: listingId,
             coverImageUrl: coverImageUrl,
           );
           await _bookRepository.updateBookListing(bookWithImage);
         } catch (e) {
-          print('Image upload failed, continuing without image: $e');
-          // Continue without image - book is still created
+          debugPrint('Image upload failed, continuing without image: $e');
         }
       }
 
@@ -86,7 +89,7 @@ class BookProvider with ChangeNotifier {
       notifyListeners();
       return true;
     } catch (e) {
-      print('Book creation failed: $e');
+      debugPrint('Book creation failed: $e');
       String errorMsg = 'Failed to post book';
       if (e.toString().contains('permission')) {
         errorMsg = 'Permission denied. Please check Firestore rules.';
@@ -113,7 +116,6 @@ class BookProvider with ChangeNotifier {
     try {
       String? coverImageUrl = book.coverImageUrl;
 
-      // Upload new image if provided
       if (imageFile != null && book.id != null) {
         try {
           coverImageUrl = await _storageRepository.uploadBookCover(
@@ -121,7 +123,7 @@ class BookProvider with ChangeNotifier {
             imageFile,
           );
         } catch (e) {
-          print('Image upload failed: $e');
+          debugPrint('Image upload failed: $e');
         }
       }
 
@@ -165,4 +167,3 @@ class BookProvider with ChangeNotifier {
     notifyListeners();
   }
 }
-
