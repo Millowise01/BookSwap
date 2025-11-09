@@ -14,7 +14,6 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _notificationReminders = false;
   bool _emailUpdates = false;
-  bool _chatNotifications = true;
   
   @override
   void initState() {
@@ -27,10 +26,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     setState(() {
       _notificationReminders = prefs.getBool('notification_reminders') ?? false;
       _emailUpdates = prefs.getBool('email_updates') ?? false;
-      _chatNotifications = prefs.getBool('chat_notifications') ?? true;
     });
   }
-  
   Future<void> _saveNotificationSetting(String key, bool value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(key, value);

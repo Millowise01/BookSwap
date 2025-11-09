@@ -154,7 +154,6 @@ class ChatsScreen extends StatelessWidget {
       
       // Create a simple chat ID based on email
       final otherUserId = 'user_${email.hashCode.abs()}';
-      final chatId = 'manual_${userId}_${otherUserId}';
       
       final success = await chatProvider.createChat(
         participants: [userId, otherUserId],

@@ -1,8 +1,6 @@
 class BookCoverService {
   static String getCoverUrl(String title, String author) {
     // Using Open Library Covers API for real book covers
-    final cleanTitle = title.replaceAll(' ', '+').toLowerCase();
-    final cleanAuthor = author.replaceAll(' ', '+').toLowerCase();
     
     // Generate a consistent cover based on title
     final covers = {

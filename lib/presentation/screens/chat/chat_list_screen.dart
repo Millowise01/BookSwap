@@ -74,16 +74,14 @@ class ChatListScreen extends StatelessWidget {
                   ),
                   title: Text(otherParticipantName),
                   subtitle: Text(
-                    chat.lastMessage ?? 'No messages yet',
+                    chat.lastMessage.isNotEmpty ? chat.lastMessage : 'No messages yet',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  trailing: chat.lastMessageTime != null
-                      ? Text(
-                          _formatTime(chat.lastMessageTime!),
-                          style: Theme.of(context).textTheme.bodySmall,
-                        )
-                      : null,
+                  trailing: Text(
+                    _formatTime(chat.lastMessageTime),
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
                   onTap: () {
                     Navigator.push(
                       context,
