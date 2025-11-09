@@ -12,8 +12,6 @@ class AuthRepository {
   // Auth state changes stream
   Stream<User?> get authStateChanges => _auth.authStateChanges();
 
-
-
   // Sign up
   Future<UserCredential> signUp({
     required String email,
@@ -125,6 +123,5 @@ class AuthRepository {
         .map((doc) => doc.exists ? UserModel.fromJson(doc.data()!) : null);
   }
 }
-
 
 
