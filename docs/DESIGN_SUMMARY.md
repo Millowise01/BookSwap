@@ -1,345 +1,207 @@
 # BookSwap App - Design Summary
 
-## Database Schema / ERD
+## Database Schema & Architecture
 
-### Firestore Collections
+### Firestore Collections Structure
 
+#### 1. Users Collection
 ```
-BookSwap Database
-│
-├── users
-│   └── {userId}
-│       ├── uid: string
-│       ├── email: string
-│       ├── name: string
-│       ├── university: string
-│       ├── profileImageUrl: string?
-│       └── createdAt: timestamp
-│
-├── listings
-│   └── {listingId}
-│       ├── ownerId: string
-│       ├── ownerName: string
-│       ├── ownerEmail: string
-│       ├── title: string
-│       ├── author: string
-│       ├── swapFor: string
-│       ├── condition: string
-│       ├── coverImageUrl: string?
-│       ├── status: string
-│       ├── createdAt: timestamp
-│       └── updatedAt: timestamp?
-│
-├── swaps
-│   └── {swapId}
-│       ├── bookOfferedId: string
-│       ├── bookRequestedId: string
-│       ├── senderId: string
-│       ├── senderName: string
-│       ├── recipientId: string
-│       ├── recipientName: string
-│       ├── state: string
-│       ├── timestamp: timestamp
-│       └── respondedAt: timestamp?
-│
-└── chats
-    └── {chatId}
-        ├── participants: array<string>
-        ├── participant1Id: string
-        ├── participant1Name: string
-        ├── participant2Id: string
-        ├── participant2Name: string
-        ├── lastMessage: string
-        ├── lastMessageTime: timestamp
-        ├── createdAt: timestamp
-        ├── swapRequestId: string
-        │
-        └── messages (subcollection)
-            └── {messageId}
-                ├── chatId: string
-                ├── senderId: string
-                ├── senderName: string
-                ├── text: string
-                └── timestamp: timestamp
+users/{userId}
+├── uid: string
+├── email: string
+├── name: string
+├── university: string
+├── profileImageUrl: string (optional)
+└── createdAt: timestamp
 ```
 
-### Firebase Storage Structure
-
+#### 2. Listings Collection
 ```
-/
-└── book_covers/
-    └── {bookId}.jpg
+listings/{listingId}
+├── ownerId: string
+├── ownerName: string
+├── ownerEmail: string
+├── title: string
+├── author: string
+├── swapFor: string
+├── condition: string (New, Like New, Good, Used)
+├── coverImageUrl: string (optional)
+├── status: string (Active, Pending, Accepted, Rejected)
+├── createdAt: timestamp
+└── updatedAt: timestamp
 ```
 
-## Swap State Modeling
-
-### State Flow
-
+#### 3. Swaps Collection
 ```
-Active → Pending → [Accepted | Rejected]
-  ↑          ↓
-  └──────────┘ (if rejected)
+swaps/{swapId}
+├── bookOfferedId: string
+├── bookRequestedId: string
+├── senderId: string
+├── senderName: string
+├── recipientId: string
+├── recipientName: string
+├── state: string (Pending, Accepted, Rejected)
+├── timestamp: timestamp
+└── respondedAt: timestamp (optional)
 ```
+
+#### 4. Chats Collection
+```
+chats/{chatId}
+├── participants: array<string>
+├── participant1Id: string
+├── participant1Name: string
+├── participant2Id: string
+├── participant2Name: string
+├── lastMessage: string
+├── lastMessageTime: timestamp
+├── createdAt: timestamp
+├── swapRequestId: string
+└── messages/{messageId}
+    ├── chatId: string
+    ├── senderId: string
+    ├── senderName: string
+    ├── text: string
+    └── timestamp: timestamp
+```
+
+## Swap State Management Flow
 
 ### State Transitions
+```
+Active → Pending → Accepted/Rejected
+```
 
-1. **Active**: Initial state when a book listing is created
-   - Book is available for swapping
-   - No pending requests
+### Detailed Flow:
+1. **Initial State**: Book listing created with `status: "Active"`
+2. **Swap Initiated**: 
+   - User taps "Swap" button
+   - Listing status changes to `status: "Pending"`
+   - SwapRequest created with `state: "Pending"`
+3. **Response Actions**:
+   - **Accept**: Both books → `status: "Accepted"`, swap → `state: "Accepted"`
+   - **Reject**: Requested book → `status: "Active"`, swap → `state: "Rejected"`
 
-2. **Pending**: When a swap offer is made
-   - Triggered by: `createSwapRequest()`
-   - Both books involved get status 'Pending'
-   - Real-time notification to recipient
-
-3. **Accepted**: When recipient accepts the swap
-   - Triggered by: `acceptSwapRequest()`
-   - Both books set to 'Accepted'
-   - Swap is finalized
-
-4. **Rejected**: When recipient rejects the swap
-   - Triggered by: `rejectSwapRequest()`
-   - Requested book returns to 'Active'
-   - Offered book may remain 'Pending' if other swaps exist
-
-### Implementation Details
-
-**Book Listing Status Updates:**
-- Updated atomically via Firestore transactions in `SwapRepository`
-- Prevents race conditions
-- Ensures data consistency
-
-**Swap Request Management:**
-- Separate `swaps` collection tracks requests independently
-- Links sender and recipient with book IDs
-- Timestamps for chronological ordering
-
-**Real-Time Synchronization:**
-- `StreamBuilder` in UI listens to Firestore streams
-- Changes propagate instantly to all connected clients
-- No manual refresh required
+### Real-time Synchronization
+- **Firestore Streams**: All state changes propagate via `snapshots()`
+- **Atomic Operations**: Batch writes ensure consistency
+- **Optimistic Updates**: UI updates immediately, syncs with server
 
 ## State Management Implementation
 
-### Provider Pattern
+### Provider Pattern Architecture
+```
+AuthProvider
+├── User authentication state
+├── User profile management
+└── Authentication methods
 
-The app uses **Provider** for state management across four key areas:
+BookProvider
+├── Book listings streams
+├── CRUD operations
+└── Real-time updates
 
-#### 1. AuthProvider
-**Responsibilities:**
-- User authentication state
-- Email verification checks
-- User profile data
-- Sign in/out/signup operations
+SwapProvider
+├── Swap request management
+├── State transitions
+└── Batch operations
 
-**Key Streams:**
+ChatProvider
+├── Real-time messaging
+├── Chat creation
+└── Message history
+```
+
+### Key Design Decisions
+
+#### 1. Stream Caching
+**Problem**: Multiple widgets subscribing to same Firestore collection
+**Solution**: Repository-level stream caching
 ```dart
-Stream<User?> authStateChanges
-Stream<bool> checkEmailVerification(String uid)
+Stream<List<BookListing>>? _allListingsStream;
+
+Stream<List<BookListing>> getAllListings() {
+  _allListingsStream ??= _firestore.collection('listings').snapshots();
+  return _allListingsStream!;
+}
 ```
 
-**State Fields:**
-- `User? _user`
-- `UserModel? _userProfile`
-- `bool _isLoading`
-- `String? _errorMessage`
+#### 2. Data Denormalization
+**Decision**: Store user names in listings and swaps
+**Rationale**: Reduces read operations, improves performance
+**Trade-off**: Slight data redundancy for better UX
 
-#### 2. BookProvider
-**Responsibilities:**
-- Book listing CRUD operations
-- Image upload management
-- Listings streams for Browse and My Listings
-
-**Key Streams:**
+#### 3. Timestamp Handling
+**Challenge**: Firestore Timestamp vs Dart DateTime
+**Solution**: Conversion layer in models
 ```dart
-Stream<List<BookListing>> getAllListings()
-Stream<List<BookListing>> getMyListings(String userId)
+DateTime _parseTimestamp(dynamic timeData) {
+  if (timeData is Timestamp) return timeData.toDate();
+  return DateTime.now();
+}
 ```
 
-**Operations:**
-- `createBookListing()` - Create with optional image
-- `updateBookListing()` - Update details/image
-- `deleteBookListing()` - Remove listing
+#### 4. Chat Architecture
+**Design**: Separate messages subcollection
+**Benefits**: 
+- Efficient pagination
+- Real-time message updates
+- Scalable message history
 
-#### 3. SwapProvider
-**Responsibilities:**
-- Swap request creation
-- Accept/reject operations
-- Swap state management
+#### 5. Image Storage Strategy
+**Path Structure**: `book_covers/{bookId}.jpg`
+**Benefits**:
+- Predictable URLs
+- Easy cleanup
+- Consistent naming
 
-**Key Streams:**
-```dart
-Stream<List<SwapRequest>> getSentRequests(String userId)
-Stream<List<SwapRequest>> getReceivedRequests(String userId)
-```
+#### 6. Security Rules Design
+**Principle**: Least privilege access
+**Implementation**:
+- Users can only edit their own data
+- Authenticated users can read public data
+- Swap participants can access swap data
 
-**Operations:**
-- `createSwapRequest()` - Initiate swap
-- `acceptSwapRequest()` - Approve swap
-- `rejectSwapRequest()` - Decline swap
+#### 7. Error Handling Strategy
+**Approach**: Graceful degradation
+- Network errors → Cached data
+- Permission errors → User-friendly messages
+- Validation errors → Form feedback
 
-#### 4. ChatProvider
-**Responsibilities:**
-- Chat room creation
-- Message sending
-- Real-time message streams
+#### 8. Performance Optimizations
+**Strategies**:
+- Stream caching to prevent duplicate subscriptions
+- Batch operations for atomic updates
+- Image caching with CachedNetworkImage
+- Memory leak prevention with proper disposal
 
-**Key Streams:**
-```dart
-Stream<List<Chat>> getUserChats(String userId)
-Stream<List<Message>> getChatMessages(String chatId)
-```
+## Architecture Benefits
 
-**Operations:**
-- `createChat()` - New conversation
-- `sendMessage()` - Post message
-- `getChatBySwapRequest()` - Link chat to swap
+### Scalability
+- Firestore auto-scales with user growth
+- Stateless architecture supports horizontal scaling
+- Efficient queries with proper indexing
 
-### Why Provider?
+### Maintainability
+- Clean separation of concerns
+- Repository pattern abstracts data layer
+- Provider pattern centralizes state management
 
-**Advantages:**
-1. **Simplicity**: Less boilerplate than Bloc
-2. **Built-in**: No additional heavy dependencies
-3. **Performance**: Efficient rebuilds with `Consumer` and `Selector`
-4. **Reactivity**: Seamless integration with Firestore streams
-5. **Learning Curve**: Easier for students to understand
+### User Experience
+- Real-time updates across all devices
+- Offline capability with Firestore caching
+- Smooth animations with optimistic updates
 
-**Alternative Considered**: Riverpod
-- More type-safe but steeper learning curve
-- Provider chosen for accessibility
+### Security
+- Firebase Authentication handles user management
+- Firestore rules enforce data access policies
+- No sensitive data in client code
 
-## Design Trade-offs & Challenges
+## Trade-offs Made
 
-### Challenge 1: Email Verification Flow
+1. **Data Redundancy vs Performance**: Chose to denormalize user names for better read performance
+2. **Real-time vs Battery**: Prioritized real-time updates over battery optimization
+3. **Simplicity vs Features**: Focused on core functionality over advanced features
+4. **Storage vs Speed**: Used image caching to balance storage and network usage
 
-**Problem:** Users must verify email before accessing app, but Firestore rules are permissive during signup.
-
-**Solution:** 
-- Server-side check in `signIn()` method
-- Throws exception if email not verified
-- Enforces logout if verification missing
-- Stream-based verification status checks
-
-**Trade-off:** Slightly slower authentication, but more secure.
-
-### Challenge 2: Swap Status Consistency
-
-**Problem:** Multiple users could initiate swaps on the same book simultaneously.
-
-**Solution:**
-- Firestore batch writes ensure atomicity
-- Status checked before allowing new swaps
-- Transaction-based updates prevent race conditions
-
-**Trade-off:** More complex code, but guarantees data integrity.
-
-### Challenge 3: Chat Creation Timing
-
-**Problem:** When to create chat - immediately on swap offer or after acceptance?
-
-**Solution:**
-- Create chat **immediately** after swap offer
-- Allows pre-acceptance negotiation
-- Linked to swap via `swapRequestId`
-
-**Trade-off:** More chats created, but better UX for negotiation.
-
-### Challenge 4: Image Upload Flow
-
-**Problem:** Large images slow down book creation.
-
-**Solution:**
-- Create listing first (synchronous)
-- Upload image second (asynchronous)
-- Update listing with URL after upload completes
-- Graceful degradation if upload fails
-
-**Trade-off:** Two-step process, but listings appear immediately.
-
-### Challenge 5: Real-Time Performance
-
-**Problem:** StreamBuilder rebuilds entire lists on any change.
-
-**Optimizations:**
-- Query-level filtering (`where` clauses)
-- Ordered queries (indexed fields)
-- Subcollections for messages (not flat structure)
-- Efficient data models (minimal fields)
-
-**Trade-off:** More Firestore reads, but instant UI updates.
-
-### Architecture Decision: Clean Architecture
-
-**Rationale:**
-1. **Separation of Concerns**: Data/Domain/Presentation layers
-2. **Testability**: Easy to mock repositories
-3. **Maintainability**: Clear file organization
-4. **Scalability**: Easy to add features
-
-**Structure:**
-```
-Data Layer:    Repositories (Firebase implementations)
-Domain Layer:  Models (Plain Dart classes)
-Presentation:  Providers + Screens (UI logic)
-```
-
-**Benefit:** Changes to Firebase API don't affect UI code.
-
-## Security Considerations
-
-### Firestore Security Rules
-
-1. **Authentication Required**: All read/write operations require auth
-2. **User-Specific Access**: Users can only modify their own data
-3. **Swap Access Control**: Only sender/recipient can view swaps
-4. **Chat Participant Verification**: Only participants can access chats
-
-### Storage Security
-
-1. **Authenticated Uploads**: Only logged-in users can upload
-2. **Public Reads**: Anyone can view book covers (marketing benefit)
-3. **Filename Sanitization**: UUID-based naming prevents collisions
-
-### Data Validation
-
-1. **Client-Side**: Form validation in Flutter
-2. **Server-Side**: Firestore rules as second layer
-3. **Type Safety**: Strong Dart typing prevents errors
-
-## Performance Optimizations
-
-1. **Lazy Loading**: Images loaded on-demand via URLs
-2. **Stream Caching**: Provider caches stream data
-3. **Indexed Queries**: Firestore indexes on `ownerId`, `participants`, etc.
-4. **Batch Operations**: Multiple writes combined where possible
-5. **Efficient Widgets**: `ListView.builder` for large lists
-
-## Future Enhancements
-
-1. **Search/Filter**: Query listings by title, author, course
-2. **Notifications**: Push notifications for swap updates
-3. **Ratings System**: Rate successful swaps
-4. **Book Recommendations**: AI-powered suggestions
-5. **Offline Mode**: Local caching with Firestore persistence
-6. **Image Compression**: Reduce upload times
-7. **Group Swaps**: Multi-party exchanges
-8. **Report System**: Flag inappropriate listings
-
-## Testing Strategy
-
-1. **Unit Tests**: Provider logic, model transformations
-2. **Integration Tests**: Repository + Firestore interactions
-3. **Widget Tests**: UI component rendering
-4. **E2E Tests**: Full user flows (signup → swap → chat)
-
-## Deployment Checklist
-
-- [ ] Configure Firebase project
-- [ ] Set up Firestore security rules
-- [ ] Configure Storage rules
-- [ ] Generate signing keys
-- [ ] Set up app store listings
-- [ ] Configure CI/CD pipeline
-- [ ] Performance monitoring
-- [ ] Crash reporting
-
+This architecture provides a solid foundation for a production-ready textbook swapping application with room for future enhancements.

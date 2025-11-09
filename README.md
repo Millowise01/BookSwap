@@ -1,9 +1,21 @@
-# BookSwap
-A Flutter mobile application for students to swap textbooks, built with Firebase backend services.
+# BookSwap - Student Textbook Exchange App
+
+[![Flutter](https://img.shields.io/badge/Flutter-3.0+-blue.svg)](https://flutter.dev/)
+[![Firebase](https://img.shields.io/badge/Firebase-Latest-orange.svg)](https://firebase.google.com/)
+[![Dart](https://img.shields.io/badge/Dart-3.0+-blue.svg)](https://dart.dev/)
 
 ## 📚 Overview
 
-BookSwap is a marketplace mobile application designed to help students exchange textbooks with each other. The app features real-time data synchronization, user authentication with email verification, CRUD operations for book listings, swap request management, and real-time chat functionality.
+BookSwap is a comprehensive mobile application designed for students to exchange textbooks efficiently. Built with Flutter and Firebase, it provides real-time synchronization, secure authentication, and seamless user experience.
+
+### ✨ Key Features
+- 🔐 **Firebase Authentication** with email verification
+- 📖 **Complete CRUD** operations for book listings
+- 🔄 **Real-time Swap System** with state management
+- 💬 **Live Chat** between users
+- 📱 **Responsive UI** with modern design
+- 🖼️ **Image Upload** for book covers
+- ⚡ **Real-time Updates** across all devices
 
 ## 🏗️ Architecture
 

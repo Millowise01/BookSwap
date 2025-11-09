@@ -1,0 +1,35 @@
+Analyzing BookSwap...                                           
+
+   info - Don't invoke 'print' in production code - lib\data\repositories\auth_repository.dart:30:9 - avoid_print
+   info - Don't invoke 'print' in production code - lib\data\repositories\auth_repository.dart:38:7 - avoid_print
+   info - Don't invoke 'print' in production code - lib\data\repositories\auth_repository.dart:59:7 - avoid_print
+   info - Don't invoke 'print' in production code - lib\data\repositories\auth_repository.dart:81:12 - avoid_print
+   info - Don't invoke 'print' in production code - lib\data\repositories\auth_repository.dart:96:7 - avoid_print
+   info - Don't invoke 'print' in production code - lib\data\repositories\auth_repository.dart:99:7 - avoid_print
+   info - Don't invoke 'print' in production code - lib\data\repositories\auth_repository.dart:128:7 - avoid_print
+   info - Don't invoke 'print' in production code - lib\data\repositories\book_repository.dart:27:11 - avoid_print
+   info - Don't invoke 'print' in production code - lib\data\repositories\book_repository.dart:38:9 - avoid_print
+   info - Don't invoke 'print' in production code - lib\data\repositories\book_repository.dart:52:11 - avoid_print
+   info - Don't invoke 'print' in production code - lib\data\repositories\book_repository.dart:63:9 - avoid_print
+   info - Don't invoke 'print' in production code - lib\data\repositories\chat_repository.dart:29:33 - avoid_print
+   info - Don't invoke 'print' in production code - lib\data\repositories\chat_repository.dart:38:9 - avoid_print
+   info - Don't invoke 'print' in production code - lib\data\repositories\chat_repository.dart:83:33 - avoid_print
+   info - Don't invoke 'print' in production code - lib\data\repositories\chat_repository.dart:92:9 - avoid_print
+   info - Don't invoke 'print' in production code - lib\data\repositories\storage_repository.dart:24:7 - avoid_print
+   info - Don't invoke 'print' in production code - lib\data\repositories\storage_repository.dart:35:7 - avoid_print
+   info - Don't invoke 'print' in production code - lib\data\repositories\swap_repository.dart:37:33 - avoid_print
+   info - Don't invoke 'print' in production code - lib\data\repositories\swap_repository.dart:46:9 - avoid_print
+   info - Don't invoke 'print' in production code - lib\data\repositories\swap_repository.dart:58:33 - avoid_print
+   info - Don't invoke 'print' in production code - lib\data\repositories\swap_repository.dart:67:9 - avoid_print
+   info - Don't invoke 'print' in production code - lib\data\repositories\swap_repository.dart:173:7 - avoid_print
+   info - The local variable '_parseTimestamp' starts with an underscore - lib\domain\models\book_model.dart:51:14 - no_leading_underscores_for_local_identifiers
+   info - The local variable '_parseTimestamp' starts with an underscore - lib\domain\models\chat_model.dart:45:14 - no_leading_underscores_for_local_identifiers
+   info - The local variable '_parseTimestamp' starts with an underscore - lib\domain\models\chat_model.dart:100:14 - no_leading_underscores_for_local_identifiers
+   info - Don't use 'BuildContext's across async gaps - lib\presentation\screens\auth\signup_screen.dart:56:11 - use_build_context_synchronously
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\presentation\screens\auth\welcome_screen.dart:45:66 - deprecated_member_use
+   info - 'activeColor' is deprecated and shouldn't be used. Use activeThumbColor instead. This feature was deprecated after v3.31.0-2.0.pre - lib\presentation\screens\home\settings_screen.dart:119:13 - deprecated_member_use
+   info - 'activeColor' is deprecated and shouldn't be used. Use activeThumbColor instead. This feature was deprecated after v3.31.0-2.0.pre - lib\presentation\screens\home\settings_screen.dart:131:13 - deprecated_member_use
+   info - Use interpolation to compose strings and values - lib\services\book_cover_service.dart:34:66 - prefer_interpolation_to_compose_strings
+   info - Use interpolation to compose strings and values - lib\services\book_cover_service.dart:35:68 - prefer_interpolation_to_compose_strings
+
+31 issues found. (ran in 22.2s)
