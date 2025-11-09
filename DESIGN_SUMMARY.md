@@ -4,7 +4,6 @@
 
 ### Firestore Collections Architecture
 
-```
 BookSwap Database (Firestore)
 │
 ├── users/{userId}
@@ -43,7 +42,7 @@ BookSwap Database (Firestore)
 │
 └── chats/{chatId}
     ├── id: string (document ID)
-    ├── participants: array<string> → [userId1, userId2]
+    ├── participants: `array<string>` → [userId1, userId2]
     ├── participant1Id: string → users/{userId}
     ├── participant1Name: string (denormalized)
     ├── participant2Id: string → users/{userId}
@@ -60,11 +59,9 @@ BookSwap Database (Firestore)
         ├── senderName: string (denormalized)
         ├── text: string
         └── timestamp: timestamp
-```
 
 ### Entity Relationships
 
-```
 User (1) ──────── (M) Listing
   │                   │
   │                   │
@@ -75,13 +72,11 @@ User (1) ──────── (M) Listing
        │ (1)
        │
        └── Chat (1) ──── (M) Message
-```
 
 ## Swap State Modeling in Firestore
 
 ### State Machine Design
 
-```
 Book Listing States:
 Active → Pending → Accepted/Rejected
   ↑         │
@@ -89,11 +84,11 @@ Active → Pending → Accepted/Rejected
 
 Swap Request States:
 Pending → Accepted/Rejected
-```
 
 ### Detailed State Flow
 
 #### 1. Initial State
+
 ```javascript
 // Book listing created
 {
@@ -103,6 +98,7 @@ Pending → Accepted/Rejected
 ```
 
 #### 2. Swap Initiated
+
 ```javascript
 // Listing updated
 {
@@ -118,6 +114,7 @@ Pending → Accepted/Rejected
 ```
 
 #### 3. Swap Response - Accepted
+
 ```javascript
 // Atomic batch operation
 batch.update(listingRef, {
@@ -137,6 +134,7 @@ batch.update(offeredBookRef, {
 ```
 
 #### 4. Swap Response - Rejected
+
 ```javascript
 // Atomic batch operation
 batch.update(listingRef, {
@@ -171,6 +169,7 @@ MultiProvider
 ```
 
 ### AuthProvider Implementation
+
 ```dart
 class AuthProvider extends ChangeNotifier {
   final AuthRepository _authRepository;
@@ -189,6 +188,7 @@ class AuthProvider extends ChangeNotifier {
 ```
 
 ### BookProvider Implementation
+
 ```dart
 class BookProvider extends ChangeNotifier {
   final BookRepository _bookRepository;
@@ -206,6 +206,7 @@ class BookProvider extends ChangeNotifier {
 ```
 
 ### SwapProvider Implementation
+
 ```dart
 class SwapProvider extends ChangeNotifier {
   final SwapRepository _swapRepository;
@@ -228,15 +229,15 @@ class SwapProvider extends ChangeNotifier {
 ```
 
 ### Real-time Data Flow
-```
+
 Firestore Change → Stream → Provider → notifyListeners() → UI Rebuild
-```
 
 ## Design Trade-offs & Challenges
 
 ### 1. Data Denormalization vs Normalization
 
 **Decision**: Denormalize user names in listings and swaps
+
 ```javascript
 // Denormalized approach (chosen)
 {
@@ -252,6 +253,7 @@ Firestore Change → Stream → Provider → notifyListeners() → UI Rebuild
 ```
 
 **Trade-offs**:
+
 - ✅ **Pro**: Faster reads, no additional lookups needed
 - ✅ **Pro**: Better offline experience
 - ❌ **Con**: Data redundancy
@@ -262,11 +264,13 @@ Firestore Change → Stream → Provider → notifyListeners() → UI Rebuild
 ### 2. Chat Architecture: Single Collection vs Subcollections
 
 **Decision**: Use subcollections for messages
+
 ```javascript
 chats/{chatId}/messages/{messageId}
 ```
 
 **Trade-offs**:
+
 - ✅ **Pro**: Efficient pagination of messages
 - ✅ **Pro**: Better query performance for large chat histories
 - ✅ **Pro**: Easier to implement real-time message updates
@@ -278,6 +282,7 @@ chats/{chatId}/messages/{messageId}
 ### 3. State Management: Provider vs Bloc vs Riverpod
 
 **Decision**: Provider pattern
+
 ```dart
 // Chosen approach
 ChangeNotifierProvider<BookProvider>(
@@ -287,6 +292,7 @@ ChangeNotifierProvider<BookProvider>(
 ```
 
 **Trade-offs**:
+
 - ✅ **Pro**: Simple to understand and implement
 - ✅ **Pro**: Good Flutter ecosystem integration
 - ✅ **Pro**: Sufficient for app complexity
@@ -298,11 +304,11 @@ ChangeNotifierProvider<BookProvider>(
 ### 4. Image Storage Strategy
 
 **Decision**: Firebase Storage with predictable paths
-```
+
 book_covers/{bookId}.jpg
-```
 
 **Trade-offs**:
+
 - ✅ **Pro**: Predictable URLs for caching
 - ✅ **Pro**: Easy cleanup when books are deleted
 - ✅ **Pro**: Simple security rules
@@ -314,11 +320,13 @@ book_covers/{bookId}.jpg
 ### 5. Real-time Updates: Polling vs Streams
 
 **Decision**: Firestore real-time streams
+
 ```dart
 _firestore.collection('listings').snapshots()
 ```
 
 **Trade-offs**:
+
 - ✅ **Pro**: True real-time updates
 - ✅ **Pro**: Automatic offline/online handling
 - ✅ **Pro**: Efficient bandwidth usage
@@ -330,6 +338,7 @@ _firestore.collection('listings').snapshots()
 ### 6. Error Handling Strategy
 
 **Decision**: Graceful degradation with user feedback
+
 ```dart
 try {
   await operation();
@@ -341,6 +350,7 @@ try {
 ```
 
 **Trade-offs**:
+
 - ✅ **Pro**: Better user experience
 - ✅ **Pro**: App remains functional during network issues
 - ❌ **Con**: More complex error handling code
@@ -351,12 +361,14 @@ try {
 ### 7. Authentication Flow: Blocking vs Non-blocking Email Verification
 
 **Decision**: Non-blocking email verification
+
 ```dart
 // Allow sign-in without email verification
 // Show verification status in UI
 ```
 
 **Trade-offs**:
+
 - ✅ **Pro**: Better user onboarding experience
 - ✅ **Pro**: Reduces signup abandonment
 - ❌ **Con**: Potential for unverified accounts
@@ -367,6 +379,7 @@ try {
 ## Performance Optimizations
 
 ### 1. Stream Caching
+
 ```dart
 // Repository-level caching prevents duplicate subscriptions
 Stream<List<BookListing>>? _allListingsStream;
@@ -378,6 +391,7 @@ Stream<List<BookListing>> getAllListings() {
 ```
 
 ### 2. Image Caching
+
 ```dart
 // CachedNetworkImage for automatic image caching
 CachedNetworkImage(
@@ -388,6 +402,7 @@ CachedNetworkImage(
 ```
 
 ### 3. Batch Operations
+
 ```dart
 // Atomic updates for consistency
 final batch = _firestore.batch();
