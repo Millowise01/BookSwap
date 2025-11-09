@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../providers/book_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/swap_provider.dart';
 import '../../providers/chat_provider.dart';
+import '../../widgets/book_card.dart';
 import '../../../domain/models/book_model.dart';
 import 'post_book_screen.dart';
 import '../../../services/populate_books.dart';
@@ -91,11 +93,13 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
                 return Card(
                   child: ListTile(
                     leading: book.coverImageUrl != null
-                        ? Image.network(
-                            book.coverImageUrl!,
+                        ? CachedNetworkImage(
+                            imageUrl: book.coverImageUrl!,
                             width: 40,
                             height: 40,
                             fit: BoxFit.cover,
+                            placeholder: (context, url) => const CircularProgressIndicator(strokeWidth: 2),
+                            errorWidget: (context, url, error) => const Icon(Icons.book),
                           )
                         : const Icon(Icons.book),
                     title: Text(book.title),
@@ -251,9 +255,9 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
             padding: const EdgeInsets.all(16),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
-              childAspectRatio: 0.65,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
+              childAspectRatio: 0.7,
+              crossAxisSpacing: 16,
+              mainAxisSpacing: 16,
             ),
             itemCount: listings.length,
             itemBuilder: (context, index) {
@@ -261,130 +265,17 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
               final isOwner = listing.ownerId == userId;
               final canSwap = !isOwner && listing.status == 'Active';
 
-              return Card(
-                elevation: 4,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(12),
-                  onTap: () {
-                    if (canSwap) {
-                      _showSwapDialog(context, listing, userId);
-                    } else {
-                      _showBookDetails(context, listing);
-                    }
-                  },
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Cover Image
-                      Expanded(
-                        flex: 3,
-                        child: Container(
-                          width: double.infinity,
-                          decoration: BoxDecoration(
-                            borderRadius: const BorderRadius.vertical(
-                              top: Radius.circular(12),
-                            ),
-                            image: listing.coverImageUrl != null
-                                ? DecorationImage(
-                                    image: NetworkImage(listing.coverImageUrl!),
-                                    fit: BoxFit.cover,
-                                  )
-                                : null,
-                            color: listing.coverImageUrl == null
-                                ? Colors.grey[300]
-                                : null,
-                          ),
-                          child: listing.coverImageUrl == null
-                              ? const Icon(
-                                  Icons.book,
-                                  size: 50,
-                                  color: Colors.grey,
-                                )
-                              : null,
-                        ),
-                      ),
-                      
-                      // Book Info
-                      Expanded(
-                        flex: 2,
-                        child: Padding(
-                          padding: const EdgeInsets.all(8),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Title
-                              Text(
-                                listing.title,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 2),
-                              
-                              // Author
-                              Text(
-                                listing.author,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey[600],
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 4),
-                              
-                              // Condition Badge
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 6,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: _getConditionColor(listing.condition),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  listing.condition,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                              const Spacer(),
-                              
-                              // Days ago
-                              Row(
-                                children: [
-                                  Icon(
-                                    Icons.access_time,
-                                    size: 12,
-                                    color: Colors.grey[500],
-                                  ),
-                                  const SizedBox(width: 2),
-                                  Text(
-                                    _getTimeAgo(listing.createdAt),
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      color: Colors.grey[500],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+              return BookCard(
+                listing: listing,
+                isOwner: isOwner,
+                canSwap: canSwap,
+                onTap: () {
+                  if (canSwap) {
+                    _showSwapDialog(context, listing, userId);
+                  } else {
+                    _showBookDetails(context, listing);
+                  }
+                },
               );
             },
           );
@@ -413,10 +304,19 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
           children: [
             if (listing.coverImageUrl != null)
               Center(
-                child: Image.network(
-                  listing.coverImageUrl!,
+                child: CachedNetworkImage(
+                  imageUrl: listing.coverImageUrl!,
                   height: 150,
                   fit: BoxFit.cover,
+                  placeholder: (context, url) => const SizedBox(
+                    height: 150,
+                    child: Center(child: CircularProgressIndicator()),
+                  ),
+                  errorWidget: (context, url, error) => Container(
+                    height: 150,
+                    color: Colors.grey[300],
+                    child: const Icon(Icons.broken_image, size: 50),
+                  ),
                 ),
               ),
             const SizedBox(height: 16),
@@ -455,33 +355,5 @@ class _BrowseListingsScreenState extends State<BrowseListingsScreen> {
     );
   }
 
-  Color _getConditionColor(String condition) {
-    switch (condition) {
-      case 'New':
-        return Colors.green;
-      case 'Like New':
-        return Colors.blue;
-      case 'Good':
-        return Colors.orange;
-      case 'Used':
-        return Colors.grey;
-      default:
-        return Colors.grey;
-    }
-  }
 
-  String _getTimeAgo(DateTime? createdAt) {
-    if (createdAt == null) return 'Recently';
-    
-    final now = DateTime.now();
-    final difference = now.difference(createdAt);
-    
-    if (difference.inDays > 0) {
-      return '${difference.inDays} days ago';
-    } else if (difference.inHours > 0) {
-      return '${difference.inHours} hours ago';
-    } else {
-      return 'Recently';
-    }
-  }
 }

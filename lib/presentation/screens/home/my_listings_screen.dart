@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../providers/book_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/swap_provider.dart';
@@ -71,28 +72,29 @@ class _MyListingsScreenState extends State<MyListingsScreen> with SingleTickerPr
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Cover Image
-          if (listing.coverImageUrl != null)
-            Container(
-              width: double.infinity,
-              height: 200,
-              decoration: BoxDecoration(
-                image: DecorationImage(
-                  image: NetworkImage(listing.coverImageUrl!),
-                  fit: BoxFit.cover,
-                ),
-              ),
-            )
-          else
-            Container(
-              width: double.infinity,
-              height: 200,
-              color: Colors.grey[300],
-              child: const Icon(
-                Icons.book,
-                size: 100,
-                color: Colors.grey,
-              ),
-            ),
+          SizedBox(
+            width: double.infinity,
+            height: 200,
+            child: listing.coverImageUrl != null
+                ? CachedNetworkImage(
+                    imageUrl: listing.coverImageUrl!,
+                    width: double.infinity,
+                    height: 200,
+                    fit: BoxFit.cover,
+                    placeholder: (context, url) => Container(
+                      color: Colors.grey[200],
+                      child: const Center(child: CircularProgressIndicator()),
+                    ),
+                    errorWidget: (context, url, error) => Container(
+                      color: Colors.grey[300],
+                      child: const Icon(Icons.broken_image, size: 100, color: Colors.grey),
+                    ),
+                  )
+                : Container(
+                    color: Colors.grey[300],
+                    child: const Icon(Icons.book, size: 100, color: Colors.grey),
+                  ),
+          ),
           
           Padding(
             padding: const EdgeInsets.all(16),
